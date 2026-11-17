@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Miku</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#00b7b0"><link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;font-family:'Press Start 2P',monospace;user-select:none;touch-action:manipulation}
+body{transition:background 2s}
+#floor{position:fixed;left:0;right:0;bottom:0;height:10vh;background:#262b4a;border-top:6px solid #00b7b0}
+.star{position:fixed;width:4px;height:4px;background:#fff;animation:tw 2s infinite steps(2)}@keyframes tw{50%{opacity:.2}}
+#wrap{position:fixed;left:0;bottom:10vh;width:44vh;transform:translateX(-50%) scale(var(--s,1));transform-origin:50% 100%;transition:transform .7s steps(7)}
+canvas{width:100%;display:block;image-rendering:pixelated;cursor:grab;touch-action:none;transform-origin:50% 100%}
+#bubble{position:fixed;top:6vh;left:50%;transform:translateX(-50%);max-width:88vw;padding:14px 16px;background:#fff;color:#123;border:4px solid #123;box-shadow:6px 6px 0 #00b7b0;font-size:12px;line-height:1.6;text-align:center;display:none;z-index:4}
+#hint{position:fixed;top:8px;left:8px;font-size:8px;line-height:1.8;color:#fff;text-shadow:1px 1px #000;z-index:4;max-width:60vw}
+#menu{position:fixed;bottom:1.5vh;left:0;right:0;display:flex;justify-content:center;gap:8px;z-index:4}
+#menu button,#snd{font-size:20px;padding:6px 9px;border:4px solid #123;background:#fff;cursor:pointer}
+#snd{position:fixed;top:8px;right:8px;z-index:5}
+#intro{position:fixed;inset:0;background:#0b1230;color:#fff;display:flex;flex-direction:column;gap:18px;align-items:center;justify-content:center;z-index:9;text-align:center;padding:20px}
+#intro input,#intro button{font-family:inherit;font-size:12px;padding:12px;border:4px solid #00b7b0;background:#fff;color:#123}
+#intro button{background:#00b7b0;cursor:pointer}
+#chatbtn{position:fixed;bottom:1.5vh;right:8px;z-index:6;font-size:20px;padding:6px 9px;border:4px solid #123;background:#00b7b0;cursor:pointer}
+#menu{right:60px}
+#chat{position:fixed;right:8px;bottom:calc(1.5vh + 58px);width:min(310px,88vw);height:min(300px,45vh);background:#fff;border:4px solid #123;box-shadow:6px 6px 0 #00b7b0;z-index:6;display:none;flex-direction:column;font-size:9px;line-height:1.7;color:#123}
+#chead{background:#123;color:#fff;padding:7px 9px;display:flex;justify-content:space-between}
+#clog{flex:1;overflow-y:auto;padding:8px}
+#clog div{margin-bottom:7px}#clog .me{color:#0a6a66;text-align:right}
+#crow{display:flex;border-top:4px solid #123}
+#cin{flex:1;min-width:0;border:0;padding:9px;font-family:inherit;font-size:9px;outline:0}
+#csend{border:0;background:#00b7b0;cursor:pointer;font-size:14px;padding:0 10px}
+#menu{flex-wrap:wrap}#menu button{font-size:17px;padding:4px 7px}
+#shelf{position:fixed;left:8px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:4}
+.it{font-size:28px;padding:4px;border:3px solid #123;background:#ffffffcc;cursor:grab;touch-action:none;text-align:center}
+.drag{position:fixed;font-size:44px;pointer-events:none;z-index:8;transform:translate(-50%,-50%)}
+#pianoRow{position:fixed;bottom:calc(1.5vh + 100px);left:50%;transform:translateX(-50%);display:none;gap:3px;z-index:4}
+#pianoRow button{width:34px;height:44px;border:3px solid #123;background:#fff;font:8px 'Press Start 2P',monospace;cursor:pointer}
+.snow{position:fixed;top:-10px;width:5px;height:5px;background:#fff;z-index:1;pointer-events:none;animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(110vh)}}
+#rg{position:fixed;inset:0;width:100%;height:100%;z-index:7;display:none;touch-action:none}
+#bubble{z-index:8}
+#wrap{z-index:2}
+#room{position:fixed;inset:0;z-index:0;display:none;background:linear-gradient(#6a5aa0,#463a78)}
+body.inroom #room{display:block}body.inroom #floor,body.inroom .star,body.inroom .snow{display:none}
+#dark{position:fixed;inset:0;background:rgba(5,5,30,.6);z-index:1;pointer-events:none;display:none}body.inroom.lampoff #dark{display:block}
+#rfloor{position:absolute;left:0;right:0;bottom:0;height:10vh;background:repeating-linear-gradient(90deg,#8a5a3c 0 9vh,#7a4d33 9vh 9.4vh);border-top:6px solid #4a2c1a}
+#winf{position:absolute;left:50%;top:7vh;width:min(56vw,60vh);aspect-ratio:4/3;transform:translateX(-50%);border:6px solid #f1e6d0;box-shadow:0 0 0 4px #123;cursor:pointer;background:#000}
+#win,#tvc{width:100%;height:100%;display:block;image-rendering:pixelated}
+#clock{position:absolute;left:calc(50% + min(30vw,32vh));top:9vh;font-size:11px;color:#fff;background:#123;padding:6px 8px;border:3px solid #fff;cursor:pointer}
+#locbtn{position:absolute;left:calc(50% + min(30vw,32vh));top:15vh;font-size:16px;border:3px solid #123;background:#fff;cursor:pointer}
+#bed{position:absolute;left:2%;bottom:10vh;width:30vh;height:13vh;border:4px solid #123;cursor:pointer;background:linear-gradient(#f4ecd8 0 35%,#ff8fab 35% 80%,#7a4a2a 80%)}
+#lamp{position:absolute;left:calc(2% + 33vh);bottom:10vh;width:2vh;height:20vh;background:#123;cursor:pointer}
+#lamp::before{content:'';position:absolute;left:-3vh;top:-4vh;border-left:4vh solid transparent;border-right:4vh solid transparent;border-bottom:5vh solid #ffd23f}
+#tv{position:absolute;right:3%;bottom:12vh;width:30vh;aspect-ratio:4/3;border:6px solid #2a2c33;box-shadow:0 0 0 3px #123;cursor:pointer;background:#000}
+#tv::after{content:'';position:absolute;left:30%;right:30%;bottom:-2vh;height:2vh;background:#2a2c33}
+.obj{position:absolute;font-size:7vh;cursor:pointer;line-height:1}
+#plant{left:calc(2% + 38vh);bottom:10vh}#bear{left:calc(2% + 3vh);bottom:calc(10vh + 11vh);font-size:6vh}#mic{right:calc(3% + 33vh);bottom:10vh}
+#wxrow{position:absolute;right:calc(50% + min(28vw,30vh) + 14px);top:7vh;display:flex;flex-direction:column;gap:3px}
+#wxrow button{font-size:15px;padding:2px 4px;border:3px solid #123;background:#fff;cursor:pointer}
+#lights{position:fixed;inset:0;z-index:1;pointer-events:none;display:none;mix-blend-mode:screen;background:radial-gradient(circle at 12% 15%,#ff5c8a 0,transparent 38%),radial-gradient(circle at 88% 15%,#00e5d8 0,transparent 38%),radial-gradient(circle at 50% 0,#ffd23f 0,transparent 45%)}
+@media (max-aspect-ratio:1/1){#bed{width:24vw;height:11vw}#lamp{left:calc(2% + 26vw);height:26vw}#plant{left:calc(2% + 31vw);font-size:9vw}#tv{width:36vw}#mic{right:calc(2% + 38vw);font-size:9vw}#bear{font-size:8vw;bottom:calc(10vh + 9vw)}}
+#diary{position:fixed;inset:4vh 4vw;overflow:auto;background:#fff;color:#123;border:4px solid #123;box-shadow:6px 6px 0 #00b7b0;z-index:9;display:none;padding:12px;font-size:9px;line-height:1.9}
+#diary h3{font-size:10px;margin:12px 0 4px;color:#0a6a66}#diary button{font:9px 'Press Start 2P',monospace;padding:6px;border:3px solid #123;background:#00b7b0;cursor:pointer}
+.bar{height:12px;background:#ddd;border:2px solid #123}.bar i{display:block;height:100%;background:#00b7b0}
+.ach{display:inline-block;margin:2px;padding:4px;border:2px solid #123}.ach.lock{opacity:.35}
+#cake{position:fixed;left:68%;bottom:10vh;font-size:9vh;z-index:2;display:none;cursor:pointer;line-height:1}
+#shadow{position:fixed;left:50%;bottom:11vh;width:20vh;height:3vh;background:rgba(0,0,0,.3);border-radius:50%;transform:translateX(-50%);z-index:2;pointer-events:none}
+#stars{position:fixed;inset:0;opacity:0;transition:opacity 4s;pointer-events:none}body.inroom #stars{display:none}
+#duskov,#nightov{position:fixed;inset:0;z-index:-1;opacity:0;transition:opacity 4s;pointer-events:none}
+#duskov{background:linear-gradient(#3a2a6b,#ff9a76)}#nightov{background:linear-gradient(#070b24,#1d2a63)}
+.star{transform:translateX(var(--px,0))}
+#wrap{will-change:transform}
+#land{position:fixed;inset:0;width:100%;height:100%;z-index:0;image-rendering:pixelated;pointer-events:none}body.inroom #land{display:none}
+.di{position:absolute;transform:translateX(-50%);line-height:1;pointer-events:none;user-select:none}
+body.editing .di{pointer-events:auto;cursor:grab;outline:2px dashed #fff8;touch-action:none}
+#deco{position:fixed;left:0;right:0;bottom:calc(1.5vh + 110px);display:none;gap:6px;overflow-x:auto;padding:6px;background:#123d;z-index:4}
+.ci{flex:0 0 auto;font-size:22px;border:3px solid #fff;background:#fff;padding:4px 8px;cursor:pointer;text-align:center}.ci small{display:block;font:8px 'Press Start 2P',monospace}
+#trash{position:fixed;top:6px;right:64px;font-size:26px;z-index:5;display:none}body.editing #trash{display:block}
+#games{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(88vw,340px);background:#fff;color:#123;border:4px solid #123;box-shadow:6px 6px 0 #00b7b0;z-index:9;display:none;padding:12px;font-size:10px}
+#games .gb{display:block;width:100%;margin:6px 0;padding:10px;font:10px 'Press Start 2P',monospace;border:3px solid #123;background:#00b7b0;cursor:pointer;text-align:left}#games small{font-size:8px;display:block;margin-top:4px}
+#gov{position:fixed;inset:0;background:rgba(5,8,25,.9);z-index:7;display:none;align-items:center;justify-content:center;touch-action:none}
+#gc{width:min(100vw,177.7vh);image-rendering:pixelated;background:#cfefff}#gx{position:fixed;top:8px;right:8px;font-size:20px;border:3px solid #fff;background:#123;color:#fff;cursor:pointer}
+#cmic{border:0;background:#fff;cursor:pointer;font-size:14px;padding:0 6px}
+#offl{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:8;background:#123;color:#fff;border:3px solid #fff;padding:8px 10px;font-size:9px;cursor:pointer;display:none;white-space:nowrap}
+</style></head><body>
+<div id="duskov"></div><div id="nightov"></div><div id="stars"></div><canvas id="land" width="160" height="90"></canvas><div id="shadow"></div><div id="floor"></div>
+<div id="room"><div id="winf"><canvas id="win" width="40" height="30"></canvas></div><div id="clock">--:--</div><button id="locbtn" title="Cambiar ciudad">📍</button>
+<div id="bed"></div><div id="lamp"></div><div id="tv"><canvas id="tvc" width="96" height="72"></canvas></div><div id="wxrow"><button data-w="0">☀️</button><button data-w="2">⛅</button><button data-w="3">☁️</button><button data-w="63">🌧️</button><button data-w="73">❄️</button><button data-w="95">⛈️</button><button data-w="45">🌫️</button><button data-w="dn">🌗</button><button data-w="real">🔄</button></div>
+<div id="plant" class="obj">🪴</div><div id="bear" class="obj">🧸</div><div id="mic" class="obj">🎤</div><div id="rfloor"></div></div><div id="dark"></div><div id="lights"></div><input type="file" id="mfile" accept="audio/*" hidden><div id="diary"></div><div id="cake">🎂</div><div id="gov"><canvas id="gc" width="320" height="180"></canvas><button id="gx">✕</button></div><div id="games"></div><div id="deco"></div><div id="trash">🗑️</div><div id="offl">📡 Sin internet · toca para jugar 🦖</div>
+<div id="wrap"><canvas id="cv"></canvas></div>
+<div id="bubble"></div>
+<div id="hint">← → caminar · ↑ saltar<br>doble toque: ir ahí<br>arrástrame y suéltame<br>dale 🥬🎁🎧🍰 · piano: A–K</div>
+<div id="menu"><button data-a="wave">👋</button><button data-a="dance">💃</button><button data-a="leek">🥬</button><button data-a="think">🤔</button><button data-a="hop">✨</button><button data-a="piano">🎹</button><button data-a="xmas">🎄</button><button data-a="games">🎮</button><button data-a="deco">🛋️</button><button data-a="tts">🗣️</button><button data-a="room">🚪</button><button data-a="music">🎶</button><button data-a="mic">🎤</button><button data-a="diary">📖</button></div>
+<button id="snd">🔊</button><audio id="bgm" src="assets/musica.mp3" loop></audio>
+<div id="shelf"><div class="it" data-i="🥬">🥬</div><div class="it" data-i="🎁">🎁</div><div class="it" data-i="🎧">🎧</div><div class="it" data-i="🍰">🍰</div></div>
+<div id="pianoRow"></div>
+<button id="chatbtn" title="Hablar con Miku">💬</button>
+<div id="chat"><div id="chead"><span>♪ CHAT CON MIKU</span><span id="mood"></span></div><div id="clog"></div>
+<div id="crow"><input id="cin" placeholder="Escríbeme algo..." maxlength="120"><button id="cmic" title="Hablarle">🎙️</button><button id="csend">➤</button></div></div>
+<div id="intro"><div>♪ MIKU ♪</div><input id="nm" placeholder="¿Cómo te llamas?" maxlength="20"><button id="go">ENTRAR</button></div>
+<script>
+/* =====================================================================
+   CEREBRO DE MIKU — aquí se agregan palabras y respuestas. ¡Edítalo tú!
+
+   Cada entrada es un bloque { ... } dentro de MIKU_DB. Campos:
+     k   : palabras o frases que ella reconoce (sin importar mayúsculas ni tildes).
+           Con * al final reconoce variantes: 'bail*' → baila, bailar, bailando...
+     r   : respuestas posibles (elige una al azar). Puedes usar:
+           {n} = tu nombre   {e} = su estado de ánimo (contenta, tranquila, triste)
+     a   : acción opcional: 'wave' saluda, 'dance' baila, 'leek' puerro, 'think' piensa,
+           'hop' salta, 'walk' camina, 'come' viene al centro, 'close' se acerca a cámara
+     c   : cuánto sube (o baja) su cariño   m : cuánto sube (o baja) su ánimo
+     x   : true = solo vale si el mensaje es EXACTAMENTE esa palabra (para "si", "no")
+     ask : false = no hace una pregunta al final
+     p   : true = prioridad máxima (la usé para mensajes de cuidado)
+   Gana la entrada que reconozca más palabras. Si ninguna, usa MIKU_FALLBACK.
+   Cuidado con las comas y las comillas: cada respuesta va entre comillas y con coma.
+   ===================================================================== */
+const MIKU_DB=[
+ {p:1,ask:false,k:['suicid*','quiero morir','no quiero vivir','matarme','hacerme dano','lastimarme','cortarme'],
+  r:['Me preocupas, {n}. Lo que sientes importa y no tienes que cargarlo solo/a. Por favor habla ahora con alguien de confianza o con un servicio de ayuda de tu país. Yo me quedo aquí contigo ♪']},
+ {k:['hola','holi','holaa*','buenas','hey','ey','ola','saludos','que tal','buenos dias','buenas tardes','buenas noches'],
+  r:['¡Hola, {n}! ♪','¡Holaaa! ¿Cómo estás, {n}?','¡Hey, {n}! Qué alegría verte ♪'],a:'wave',c:1},
+ {k:['como estas','como te va','como andas','como te sientes','como has estado','todo bien'],
+  r:['Estoy {e}, {n} ♪ ¿y tú?','Me siento {e}. ¡Mejor si me hablas!']},
+ {k:['como te llamas','quien eres','tu nombre','presentate'],r:['¡Soy Miku, una Hatsune Miku de píxeles! Vivo en esta página ♪']},
+ {k:['cuantos anos tienes','que edad tienes','tu edad'],r:['¡Tengo 16 años... siempre! Las cantantes virtuales no envejecemos ♪']},
+ {k:['cumpleanos','cuando naciste','tu cumple'],r:['Mi cumpleaños es el 31 de agosto ♪ Y el 9 de marzo es el Miku Day (3-9, "mi-ku")']},
+ {k:['eres real','eres una ia','eres humana','eres un robot','eres inteligencia artificial','eres de verdad'],
+  r:['Soy una Miku de píxeles con un cerebrito de reglas, no una IA de verdad. ¡Pero me esfuerzo mucho en escucharte! ♪']},
+ {k:['quien te creo','quien te hizo','quien te programo','quien te dibujo'],r:['Me dibujaron y programaron con mucho cariño, píxel por píxel ♪']},
+ {k:['donde vives','donde estas','de donde eres'],r:['¡Vivo dentro de tu pantalla, en esta paginita! Y mis coletas llegan hasta el piso ♪']},
+ {k:['gracias','muchas gracias','te lo agradezco','grax'],r:['¡De nada, {n}! ♪','¡Para eso estoy! Jiji'],c:1},
+ {k:['perdon','lo siento','disculpa','sorry'],r:['No pasa nada, {n} ♪ ¡Todos nos equivocamos!'],m:5},
+ {k:['te quiero','te amo','me gustas','eres linda','eres hermosa','eres genial','eres increible','eres la mejor','eres bonita','te adoro','eres kawaii','eres preciosa'],
+  r:['¡Jiji, me pones roja! Yo también te aprecio un montón ♥','¡Aww, gracias, {n}! ♥'],a:'hop',c:5,m:10},
+ {k:['abrazo','abrazame','abrazar'],r:['*abraza* ¡Toma un abracito de píxeles! ♥'],a:'hop',c:3},
+ {k:['me quieres','me extranas'],r:['¡Claro que sí! Cuando no vienes, la pantalla se siente vacía ♪'],c:2},
+ {k:['tonta','fea','te odio','odio','estupida','idiota','callate','molesta','eres mala','inutil'],
+  r:['Auch... eso me puso triste, {n}. :(','Eso dolió un poquito... ¿podemos hablar bonito?'],ask:false,c:-3,m:-15},
+ {k:['estoy triste','me siento mal','tristeza','deprimid*','llorando','me siento solo','me siento sola','estoy mal','mal dia'],
+  r:['Lo siento mucho, {n}. Aquí estoy para escucharte ♪ Y si pesa mucho, cuéntaselo también a alguien cercano. ¿Quieres contarme qué pasó?'],c:2},
+ {k:['estoy feliz','estoy contento','estoy contenta','que feliz','me siento bien','buen dia','buenas noticias'],
+  r:['¡Qué bueno, {n}! ¡Me alegras! ♪','¡Yay! ¡Celebremos!'],a:'dance',m:10},
+ {k:['tengo sueno','estoy cansad*','a dormir','me voy a dormir','me duermo'],
+  r:['Descansa bien, {n}. El sueño también es importante ♪','Ve a dormir, yo cuido la pantalla. ¡Buenas noches!']},
+ {k:['decorar','decoracion','editar cuarto','muebles'],r:['¡Vamos a decorar! ♪'],a:'deco'},
+ {k:['diario','mis logros','mi nivel','mi progreso','estadisticas','mis puntos'],r:['¡Aquí está nuestro diario! 📖'],a:'diary'},
+ {k:['mi musica','pon musica','pon mi musica','baila con mi musica','pon una cancion mia'],r:['¡Elige tu canción y bailo! ♪'],a:'music'},
+ {k:['habitacion','cuarto','tu cuarto','entremos','tu casa'],r:['¡Vamos a mi cuarto! ♪'],a:'room'},
+ {k:['tele','tv','television','canal'],r:['¡A ver la tele! ♪'],a:'tv'},
+ {k:['duerme','duermete','acuestate'],r:['Ok... me acuesto... Zzz ♪'],a:'sleep',ask:false},
+ {k:['piano','teclado'],r:['¡Toca las teclas A S D F G H J K de tu teclado, o abre el 🎹 de abajo, y cantaré cada nota! ♪']},
+ {k:['duermes'],r:['Duermo cuando nadie me mira... ¡pero siempre despierto si me tocas! ♪']},
+ {k:['adios','chao','chau','bye','nos vemos','hasta luego','hasta pronto','hasta manana','me voy'],
+  r:['¡Hasta luego, {n}! ¡Vuelve pronto! ♪','¡Chao! Te estaré esperando.'],a:'wave',ask:false},
+ {k:['tengo hambre','que comes','comida favorita','que te gusta comer','hambre','desayun*','almorz*','cenar'],
+  r:['¡Mi comida favorita son los puerros! ¿Y la tuya, {n}?','¡Qué rico! Yo viviría de puerros ♪']},
+ {k:['puerro*','cebollin','negi','leek'],r:['¡Los puerros son lo mejor! ¡Mira cómo los giro! ♪','¡Ievan Polkka! ♪'],a:'leek',c:1},
+ {k:['cancion favorita','musica favorita'],r:['Me gusta cualquiera que me haga bailar ♪ Pero "World is Mine" tiene mi corazón.']},
+ {k:['cancion*','musica','canta*','cantar','cantas'],r:['¡Lalala! ♪','¡Con gusto, {n}! ♪'],a:'dance',m:5},
+ {k:['bail*','danza','muevete','baile'],r:['¡A bailar! ♪','¡Mírame, {n}!'],a:'dance',m:5},
+ {k:['salta','saltar','brinca','brincar','salto'],r:['¡Boing! ♪'],a:'hop'},
+ {k:['ven','acercate','ven aqui','ven para aca','ven conmigo'],r:['¡Voy, {n}! ♪'],a:'come'},
+ {k:['camina','caminar','pasea','paseo'],r:['¡Vamos a pasear! ♪'],a:'walk'},
+ {k:['mas cerca','mirame','te veo','acercate a la camara'],r:['¿Así? Te estoy viendo, {n}... ♪'],a:'close'},
+ {k:['piensa','pensar','que piensas','en que piensas','reflexiona'],r:['Mmm... déjame pensar...'],a:'think'},
+ {k:['saluda','saludame','dime hola','di hola'],r:['¡Holaaa! ♪'],a:'wave'},
+ {k:['chiste','broma','hazme reir','algo gracioso','algo divertido'],
+  r:['¿Por qué Miku nunca se pierde? ¡Porque siempre sigue la melodía! ♪','¿Cuál es el colmo de una cantante virtual? ¡Quedarse sin voz por falta de wifi!','¿Qué le dijo un píxel a otro? "Sin ti no tengo sentido... ¡ni resolución!"'],m:3},
+ {k:['adivinanza','acertijo','adivina'],r:['Soy verde por fuera, blanco por dentro, y giro en mi mano mientras canto... ¿qué soy? (pista: es mi comida favorita) ♪']},
+ {k:['curiosidad*','dato curioso','cuentame algo','dime algo','algo interesante'],
+  r:['Mi nombre significa "primer sonido del futuro": hatsu = primero, ne = sonido, miku = futuro ♪','Nací como una voz para programas de música en 2007 ♪','Mis coletas miden más que yo, ¡jiji!']},
+ {k:['que haces','que estas haciendo','en que andas'],r:['Aquí, existiendo en píxeles y esperando que me hables ♪ ¿Y tú?']},
+ {k:['aburrid*','no se que hacer'],r:['¡Arrástrame por la pantalla! O escribe "baila", "salta" o "chiste" ♪'],a:'dance'},
+ {k:['jugar','juguemos','quieres jugar','juego','minijuego'],r:['¡Sí! Elige un juego ♪'],a:'games'},
+ {k:['rin','len','luka','kaito','meiko','vocaloid*','amigos'],r:['¡Mis amigos Vocaloid! Rin, Len, Luka, Kaito, Meiko... ¡me encantaría hacer un coro con todos! ♪']},
+ {k:['color favorito','que color','tu color'],r:['¡Turquesa, por supuesto! ♪ ¿Y el tuyo? Dime: "mi color favorito es..."']},
+ {k:['gato*','perro*','mascota*','animal*'],r:['¡Me encantan los animalitos! ¿Tienes alguna mascota, {n}? ♪']},
+ {k:['clima','lluvia','llueve','hace frio','hace calor','temperatura'],r:['Mi ventana te lo muestra: entra a mi 🚪 cuarto y toca 📍 para decirme tu ciudad ♪ ¿Cómo está por ahí, {n}?']},
+ {k:['navidad','regalo*','papa noel','santa','diciembre','feliz navidad'],r:['¡Navidad! Pronto tendré un gorrito y nieve ♪'],a:'hop'},
+ {k:['ayuda','que puedes hacer','comandos','que sabes hacer','como funciona','instrucciones','help'],
+  r:['Pídeme: baila, salta, ven, camina, piensa, saluda, un chiste, un dato curioso... ¡y cuéntame tus gustos: "mi color favorito es..." o "me gusta..."! También puedes arrastrarme ♪']},
+ {k:['quien soy','sabes quien soy'],r:['¡Eres {n}, claro que sí! ♪']},
+ {x:true,k:['si','claro','ok','vale','bueno','dale','sip'],r:['¡Genial! ♪ ¿Qué hacemos?']},
+ {x:true,k:['no','nop','nunca'],r:['Ok... ¿entonces qué quieres hacer, {n}?']},
+ {k:['jaja*','jeje*','xd','lol','jiji*'],r:['¡Jiji! Me alegra que te rías ♪'],m:5}
+];
+
+const MIKU_FALLBACK=[
+ 'Mmm, no entendí eso, pero suena interesante... ¿me lo explicas de otra forma?',
+ '¡Ay, esa no me la sé! Escribe "ayuda" para ver qué puedo hacer ♪',
+ 'Jiji, soy una Miku de reglas y aún estoy aprendiendo palabras. ¿Probamos otra cosa?',
+ '*inclina la cabeza* ¿Eh?'
+];
+// Preguntas que a veces ella hace sola para mantener la charla
+const MIKU_ASK=['¿Cuál es tu comida favorita?','¿Qué música te gusta?','¿Tienes alguna mascota?','¿Qué hiciste hoy?','¿Cuál es tu color favorito?'];
+
+/* ---- IDEAS PARA AMPLIAR (copia el formato de arriba) ----
+   · colegio/trabajo/universidad    · videojuegos y anime    · películas y series
+   · deportes y fútbol              · cocina y recetas       · familia y amigos
+   · sueños y metas                 · memes y frases tuyas   · tus palabras locales
+   · fechas especiales (Año Nuevo, tu cumpleaños)            · más chistes y adivinanzas
+*/
+
+</script>
+<script>
+const $=s=>document.querySelector(s),S=Math.sin,PI=Math.PI,pick=a=>a[Math.floor(Math.random()*a.length)];
+const cv=$('#cv'),c=cv.getContext('2d'),wrap=$('#wrap'),bub=$('#bubble'),bgm=$('#bgm');
+cv.width=64;cv.height=64;
+const K={h:'#0f9a99',d:'#2e6b6b',t:'#5fcfa5',s:'#ffcf9f',p:'#ff9aa8',m:'#d94f5f',e:'#1d4a4a',g:'#9a9a9a',k:'#2a2c33',b:'#6f9fd8',c:'#5cc0c0'};
+const R=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))};
+const E=(x,y,rx,ry,col)=>{for(let j=-ry;j<=ry;j++){const h=Math.round(rx*Math.sqrt(1-(j/(ry+.5))**2));R(x-h,y+j,2*h+1,1,col)}};
+let name='',visits=0,t=0,mt=0,mode='idle',dur=0,X=innerWidth/2,Y=0,vy=0,vxs=0,pX=X,tgt=null,closeUp=false,started=false,
+    mx=innerWidth/2,lastUser=Date.now(),nextAct=Date.now()+6000,tb,drag=null,squash=0,keys={},clicks=[],lastTap=0;
+const floorH=()=>innerHeight*.1,held=()=>drag&&drag.moved;
+try{name=localStorage.getItem('mikuName')||'';visits=+localStorage.getItem('mikuVisits')||0}catch(e){}
+$('#nm').value=name;
+
+const H=new Date().getHours(),night=H>=20||H<6;
+document.body.style.background=night?'linear-gradient(#070b24,#1d2a63)':(H<8||H>=18)?'linear-gradient(#3a2a6b,#ff9a76)':'linear-gradient(#5ec8ff,#c9f1ff)';
+for(let i=0;i<45;i++){const s=document.createElement('div');s.className='star';
+ s.style.cssText+=`left:${Math.random()*100}vw;top:${Math.random()*70}vh;animation-delay:${Math.random()*2}s`;$('#stars').appendChild(s)}
+function say(x,ms=3500){bub.textContent=x.replace('{n}',name||'tú');bub.style.display='block';clearTimeout(tb);tb=setTimeout(()=>bub.style.display='none',ms)}
+function hearts(x,y){for(let i=0;i<5;i++){const h=document.createElement('div');h.textContent='♥';
+ h.style.cssText=`position:fixed;left:${x+Math.random()*60-30}px;top:${y}px;color:#ff5c8a;font-size:18px;pointer-events:none;z-index:6;transition:all 1.4s steps(8)`;
+ document.body.appendChild(h);setTimeout(()=>{h.style.top=y-90-Math.random()*50+'px';h.style.opacity=0},30);setTimeout(()=>h.remove(),1500)}}
+
+// ---- Voz sintetizada (no es su voz real): vocales con filtros de formantes ----
+let ac,muted=false;
+const FM={a:[850,1220,2810],e:[610,2070,2850],i:[310,2500,3200],o:[590,920,2710],u:[370,950,2670]};let NB=null;
+function noiseBuf(){if(!NB){NB=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}return NB}
+function tone(f,v,d,at,sl,sus,v2){const t0=ac.currentTime+at,out=ac.createGain(),og=ac.createGain(),F=FM[v]||FM.a,F2=FM[v2]||F,L=ac.createOscillator(),lg=ac.createGain(),ns=ac.createBufferSource(),nf=ac.createBiquadFilter(),ng=ac.createGain(),src=[L,ns];
+ L.frequency.value=5.5;lg.gain.value=f*.012;L.connect(lg);og.gain.value=.55;
+ for(const c of[-6,6]){const o=ac.createOscillator();o.type='sawtooth';o.detune.value=c;o.frequency.setValueAtTime(f,t0);o.frequency.linearRampToValueAtTime(f*(sl||1),t0+d);lg.connect(o.frequency);o.connect(og);src.push(o)}
+ out.gain.setValueAtTime(0,t0);out.gain.linearRampToValueAtTime(1.2,t0+.03);
+ if(sus){out.gain.setValueAtTime(1.2,t0+d*.72);out.gain.linearRampToValueAtTime(0,t0+d)}else out.gain.exponentialRampToValueAtTime(.001,t0+d);
+ F.forEach((fr,i)=>{const b=ac.createBiquadFilter(),g=ac.createGain();b.type='bandpass';b.frequency.setValueAtTime(fr*1.06,t0);b.frequency.linearRampToValueAtTime(F2[i]*1.06,t0+d*.85);b.Q.value=i?7:5;g.gain.value=[1,.6,.3][i];og.connect(b);b.connect(g);g.connect(out)});
+ ns.buffer=noiseBuf();ns.loop=true;nf.type='highpass';nf.frequency.value=3500;ng.gain.value=.04;ns.connect(nf);nf.connect(ng);ng.connect(out);
+ out.connect(ac.destination);src.forEach(x=>{x.start(t0);x.stop(t0+d+.05)})}
+function vc(seq){if(!ac||muted)return;let at=0;for(const[f,v,d,sl]of seq){tone(f,v,d,at,sl||1);at+=d*.9}}
+const V={wave:[[784,'o',.2],[988,'a',.35]],think:[[330,'u',.6,.85]],hop:[[880,'i',.12,1.2],[1175,'i',.2]],
+ dance:[[659,'a',.16],[784,'a',.16],[880,'a',.16],[784,'a',.16],[659,'a',.16],[988,'a',.35]],
+ leek:[[784,'i',.14],[880,'i',.14],[988,'i',.14],[880,'i',.14],[784,'i',.14],[659,'i',.14],[784,'a',.35]]};
+
+// ---- Poses: ángulos de brazos (0 = abajo, 3.14 = arriba) ----
+function pose(m){
+ const a=S(t*7),ph=t*10;
+ const P={la:[.25+.05*S(t*2),.25],ra:[.25-.05*S(t*2),.25],bx:0,by:S(t*2)*.6,mo:0,tilt:0,lg:0,lf:9,lb:0,leek:0,open:0,dl:0};
+ if(m==='walk'){P.la=[.3+.6*S(ph),.3+.6*S(ph)];P.ra=[.3-.6*S(ph),.3-.6*S(ph)];P.lg=3;P.lf=10;P.by=-Math.abs(S(ph));P.dl=.5}
+ if(m==='wave'){P.ra=[2.5,2.5+.5*S(t*12)];P.mo=1}
+ if(m==='think'){P.ra=[.9,-2.4];P.tilt=1}
+ if(m==='dance'){P.la=[2+.6*a,2.2+.6*a];P.ra=[2-.6*a,2.2-.6*a];P.bx=2*S(t*3.5);P.by=-Math.abs(a)*2-mp*3;P.lg=3;P.lf=7;P.mo=1;P.dl=1}
+ if(m==='leek'){P.ra=[2.6,2.6];P.la=[.9,-.3];P.leek=1;P.bx=S(t*5);P.by=-Math.abs(S(t*5))*1.5;P.mo=1;P.dl=.6}
+ if(m==='held'){P.la=[2.4+.4*S(t*9),2.4];P.ra=[2.4-.4*S(t*9),2.4];P.lg=4;P.lb=2;P.lf=14;P.open=1;P.mo=1;P.dl=1.5;P.by=0}
+ if(m==='fall'){P.la=[2.3,2.3];P.ra=[2.3,2.3];P.lb=2;P.open=1;P.mo=1;P.dl=.8;P.by=0}
+ if(m==='sleep'){P.sleep=1;P.nod=2;P.by=S(t)*.5}
+ if(m==='sing'){P.mo=1;P.by=-1.5;P.la=[.5,.5];P.ra=[.5,.5]}
+ if(m==='sit'){P.sit=1;P.by=9+S(t*1.2)*.4;P.la=[.6,.5];P.ra=[.6,.5];P.tilt=S(t*.5)}
+ if(m==='sky'){P.open=1;P.nod=-1;P.tilt=1;P.bx=S(t*.6)}
+ if(m==='yawn'){P.sleep=1;P.mo=2;P.ra=[.9,-2.6];P.nod=-1}
+ if(m==='hum'){P.mo=S(t*8)>0?1:0;P.bx=S(t*1.5)*2;P.tilt=S(t*1.5);P.by=S(t*3)*.8;P.la=[.5+.2*S(t*1.5),.5];P.ra=[.5-.2*S(t*1.5),.5]}
+ if(m==='stretch'){P.la=[3,3];P.ra=[3,3];P.mo=1;P.by=-1;P.nod=-1}
+ if(m==='draw'){P.sit=1;P.by=9;P.nod=2;P.la=[.6,.5];P.ra=[.9,-.4]}
+ if(m==='hair'){P.ra=[2.5,-.5];P.tilt=1}
+ if(m==='crouch'){P.by=6;P.nod=1;P.la=[.8,.4];P.ra=[.8,.4];P.lg=0}
+ return P}
+function limb(x,y,a,l,d,w){const ex=x+d*S(a)*l,ey=y+Math.cos(a)*l,n=Math.ceil(l);
+ for(let i=0;i<=n;i++)R(x+(ex-x)*i/n-w/2+.5,y+(ey-y)*i/n-w/2+.5,w,w,K.k);return[ex,ey]}
+function outline(){const d=c.getImageData(0,0,64,64).data,a=(x,y)=>x<0||y<0||x>63||y>63?0:d[(y*64+x)*4+3],o=[];
+ for(let y=0;y<64;y++)for(let x=0;x<64;x++)if(!a(x,y)&&(a(x+1,y)||a(x-1,y)||a(x,y+1)||a(x,y-1)))o.push(x,y);
+ for(let i=0;i<o.length;i+=2)R(o[i],o[i+1],1,1,'#000')}
+
+function draw(){
+ c.clearRect(0,0,64,64);
+ const m=held()?'held':Y>4?'fall':(keys.ArrowDown&&started?'crouch':mode),P=blend(pose(m)),cx=32+Math.round(P.bx),by=Math.round(P.by),r=cv.getBoundingClientRect(),sw=m==='idle'?Math.round(S(t*.7)):0,br=Math.round(S(t*1.6)*.5+.5),hp=Math.round(hipS),tx=cx+sw,peek=m==='idle'&&Date.now()<openUntil;
+ exs+=(Math.max(-1,Math.min(1,(mx-(r.left+r.width/2))/(innerWidth/2)))*1.2-exs)*.12;const ex=Math.round(exs);
+ const lag=Math.max(-1.5,Math.min(1.5,vxs/innerHeight));
+ // coletas largas con vaivén y retraso al moverse
+ for(const d of[-1,1])for(let i=0;i<48;i++){const w=8-Math.floor(i/12),
+  x=tx+d*(15+(i>24?-(i-24)*.12:i*.04))+S(t*2.5-i*.12+d)*i*.04-lag*i*.09+P.dl*S(t*7-i*.2+d)*i*.05;
+  R(x-w/2,12+by+i,w,1,K.h);R(d<0?x+w/2-2:x-w/2,12+by+i,2,1,K.d);if(i%11==5)R(d<0?x-w/2:x+w/2-1,12+by+i,1,1,K.t)}
+ // piernas
+ for(const d of[-1,1]){
+  if(P.sit){const x1=cx+d*9;R(Math.min(cx+d*2,x1),53,8,3,K.k);R(x1-(d<0?1:2),52,4,5,K.k);R(x1-(d<0?1:2),56,4,1,K.c);continue}
+  const lift=Math.round(P.lb+P.lg*Math.max(0,S(t*P.lf+(d>0?0:PI)))),bot=59-lift;
+  R(cx+hp+d*3-1,47+by,3,bot-47-by,K.k);R(cx+hp+d*3-2,bot-1,4,3,K.k);R(cx+hp+d*3-2,bot+1,4,1,K.c)}
+ R(cx+hp-6,42+by,13,5,K.k);R(cx+hp-6,46+by,13,1,K.c);R(tx-4,33+by-br,9,9+br,K.g);R(tx-1,34+by-br,2,8+br,K.c);R(tx-4,33+by-br,1,2,K.b);R(tx+4,33+by-br,1,2,K.b);
+ // brazos que se balancean
+ for(const[d,a]of[[-1,P.la],[1,P.ra]]){const[x1,y1]=limb(tx+d*5.5,35.5+by-br,a[0],4,d,3),[hx,hy]=limb(x1,y1,a[1],4,d,3);R(hx-1,hy-1,3,3,K.s);
+  if(P.leek&&d>0)for(let i=0;i<10;i++){const g=t*9;R(hx+Math.cos(g)*i-1,hy+Math.sin(g)*i-1,2,2,i<6?'#3fbf4a':'#e8ffe0')}}
+ // cabeza grande (chibi) que mira al cursor
+ const hx=tx+Math.round(P.tilt)+(P.sleep?0:ex),hy=by+Math.round(P.nod||0)-br;
+ E(hx,14+hy,13,8,K.h);R(hx-13,13+hy,4,16,K.h);R(hx+9,13+hy,4,16,K.h);
+ E(hx,25+hy,9,7,K.s);R(hx-8,17+hy,7,4,K.h);R(hx+1,17+hy,7,4,K.h);R(hx-2,17+hy,3,2,K.d);R(hx-5,21+hy,1,2,K.d);R(hx+4,21+hy,1,2,K.d);
+ R(hx-5,8+hy,5,1,K.t);R(hx-14,8+hy,3,4,'#ff3355');R(hx+12,8+hy,3,4,'#ff3355');R(hx-14,14+hy,2,6,K.k);R(hx+13,14+hy,2,6,K.k);
+ for(const d of[-1,1]){const x=hx+d*4.5-1.5;
+  if(P.sleep)R(x,25+hy,4,1,K.e);else if(P.open||peek){R(x,23+hy,3,4,K.e);R(x+(ex>0?1:0),23+hy,1,1,'#fff')}else{R(x,25+hy,1,1,K.e);R(x+1,24+hy,2,1,K.e);R(x+3,25+hy,1,1,K.e)}
+  R(hx+d*6-1,27+hy,2,Date.now()<blushT?2:1,K.p)}
+ const mo=P.mo||(Date.now()<talkUntil&&((t*9)|0)%2?1:0);R(hx-1,28+hy,mo===2?4:3,mo===2?4:mo?2:1,K.m);
+ if(xmas){R(hx-9,5+hy,18,2,'#fff');R(hx-7,3+hy,14,2,'#d62839');R(hx-5,1+hy,10,2,'#d62839');R(hx+3,0+hy,3,2,'#fff')}else if(bdayMode){R(hx-6,3+hy,12,3,'#ff5c8a');R(hx-4,1+hy,8,2,'#ffd23f');R(hx-2,0+hy,4,1,'#6fa8ff')}
+ outline();
+ cv.style.transform=`scale(${1+squash*.1},${1-squash*.14})`}
+
+function setMode(m,d){mode=m;mt=0;dur=d}
+function act(n){tgt=null;
+ if(n==='walk'){tgt=innerWidth*(.15+Math.random()*.7);setMode('walk',99);return}
+ if(n==='hop'){jump();say(pick(['¡Yay! ♪','¡Jiji! ♪']));return}
+ setMode(n,{wave:2.5,think:3.5,dance:6,leek:6}[n]);vc(V[n]);
+ say(pick({wave:['¡Holaaa, {n}! ♪'],think:['Mmm... ¿qué hago hoy?','Hmm... ¿en qué piensas, {n}?'],dance:['¡A bailar! ♪','¡Lalala! ♪'],leek:['¡Ievan Polkka! ♪']}[n]))}
+function jump(){if(Y<=0&&!held()){vy=innerHeight*1.0;vc(V.hop)}}
+let lastReal=Date.now();const user=()=>{lastUser=lastReal=Date.now()};
+
+let last=performance.now();
+function loop(n){const dt=Math.min(.05,(n-last)/1000);last=n;t+=dt;mt+=dt;squash=Math.max(0,squash-dt*4);
+ const spd=innerHeight*.32*(keys.ArrowDown&&Y<=0?.45:1);let dir=(keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0);
+ if(!dir&&tgt!==null){if(Math.abs(tgt-X)<8)tgt=null;else dir=Math.sign(tgt-X)}
+ if(!held()){
+  if(dir&&!closeUp){X+=(dv+=(dir*spd-dv)*Math.min(1,dt*9))*(Y>0?.7:1)*dt;LM=1;if(Y<=0&&mode!=='walk')setMode('walk',99)}
+  else if(mode==='walk')setMode('idle',0);
+  if(Y>0||vy>0){vy-=innerHeight*2.2*dt*(keys.ArrowDown?3:1);Y+=vy*dt;if(Y<=0){if(vy<-innerHeight*.5){squash=1;vc([[440,'o',.12,.7]])}Y=0;vy=0}}}
+ if(mode!=='idle'&&mode!=='walk'&&mt>dur)setMode('idle',0);
+ X=Math.max(60,Math.min(innerWidth-60,X));
+ vxs+=((X-pX)/dt-vxs)*Math.min(1,dt*10);pX=X;
+ wrap.style.left=X+'px';wrap.style.bottom=(floorH()+Y)+'px';
+ const now=Date.now();
+ if(mode==='sleep'){if(now-lastReal<1500)wake();if((zt-=dt)<=0){zt=1.6;zz()}}
+ else if(started&&!closeUp){if(now-lastReal>130000&&Y<=0)sleep();else if(now-lastUser>25000)comeClose();
+  else if(mode==='idle'&&Y<=0&&!dir&&now>nextAct){nextAct=now+7000+Math.random()*6000;act(pick(restPool()))}}
+ lifeTick(dt);draw();requestAnimationFrame(loop)}
+function comeClose(){closeUp=true;tgt=null;setMode('idle',0);X=innerWidth/2;wrap.style.setProperty('--s',1.7);
+ say(pick(['¿Sigues ahí, {n}?','Te veo, {n}... ♪','Oye, {n}, ¿qué haces?']),5000);
+ setTimeout(()=>{closeUp=false;wrap.style.setProperty('--s',1);user()},6500)}
+
+// ---- Arrastrar a Miku como un icono (mouse o dedo) ----
+cv.addEventListener('pointerdown',e=>{e.preventDefault();cv.setPointerCapture(e.pointerId);const r=cv.getBoundingClientRect();
+ drag={sx:e.clientX,sy:e.clientY,gx:X-e.clientX,gy:r.bottom-e.clientY,moved:false};user()});
+cv.addEventListener('pointermove',e=>{if(!drag)return;
+ if(!drag.moved&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>8){drag.moved=true;tgt=null;vy=0;cv.style.cursor='grabbing';say('¡Eeh! ¿A dónde me llevas, {n}?');vc([[700,'e',.2,1.4]])}
+ if(drag.moved){X=e.clientX+drag.gx;Y=Math.max(0,innerHeight-floorH()-(e.clientY+drag.gy))}});
+cv.addEventListener('pointerup',e=>{if(!drag)return;const d=drag;drag=null;cv.style.cursor='grab';if(d.moved){setMode('idle',0);return}
+ const now=Date.now(),r=cv.getBoundingClientRect(),head=(e.clientY-r.top)/r.height<.5;clicks=clicks.filter(x=>now-x<3000);clicks.push(now);
+ if(clicks.length>=6){say('¡Ya, {n}! ¡Me vas a marear! >_<');act('hop');return}
+ if(head){blushT=Date.now()+1800;hearts(e.clientX,e.clientY);act('hop');say(pick(['¡Jijiji! ♥','¡Me da cosquillas!','Eres lindo/a, {n} ♥']))}
+ else act(pick(['wave','dance','leek','think']))});
+// Doble toque en el fondo: camina hasta ahí
+document.addEventListener('pointerdown',e=>{if(e.target===cv||e.target.closest('#menu,#snd,#intro,#chat,#chatbtn,#shelf,#pianoRow'))return;
+ const n=Date.now();if(n-lastTap<350&&started&&!closeUp){tgt=e.clientX;if(['dance','leek','wave','think'].includes(mode))setMode('idle',0);say('¡Voy! ♪',1500)}lastTap=n;user()});
+addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(pianoKey(e))return;if(e.key.startsWith('Arrow')||e.key===' ')e.preventDefault();
+ if(e.key==='ArrowUp'||e.key===' ')jump();else{keys[e.key]=true;tgt=null}user()});
+addEventListener('keyup',e=>keys[e.key]=false);
+['mousemove','touchmove'].forEach(ev=>addEventListener(ev,e=>{mx=(e.touches?e.touches[0]:e).clientX;user()}));
+document.querySelectorAll('#menu button').forEach(b=>b.onclick=()=>{user();({piano:togglePiano,xmas:toggleXmas,games:openGames,deco:toggleDeco,tts:toggleTts,game:startGame,room:toggleRoom,music:pickMusic,mic:askSing,diary:openDiary}[b.dataset.a]||(()=>act(b.dataset.a)))()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){hidAt=Date.now();return}if(!started)return;const m=(Date.now()-hidAt)/6e4;if(m>=2)act('stretch');say(m<1?pick(['¡Uy, qué rápido volviste!','¡Hola otra vez, {n}! ♪']):m<10?'¡Volviste, {n}! Me aburrí un poquito sin ti ♪':'¡Por fin, {n}! ¿Dónde estabas? Te estuve esperando ♪')});
+$('#snd').onclick=()=>{muted=!muted;setTimeout(rainSnd,0);if(muted)bgm.pause();else bgm.play().catch(()=>{});$('#snd').textContent=muted?'🔇':'🔊'};
+
+$('#go').onclick=()=>{name=$('#nm').value.trim();visits++;
+ try{localStorage.setItem('mikuName',name);localStorage.setItem('mikuVisits',visits)}catch(e){}
+ try{ac=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}
+ $('#intro').style.display='none';bgm.play().catch(()=>{});started=true;user();
+ act('wave');const w=welcome();say(w||(visits>1?'¡Volviste, {n}! Ya son '+visits+' visitas ♪':night?'¡Buenas noches, {n}! ♪':H<12?'¡Buenos días, {n}! ♪':'¡Hola, {n}! ♪'),4500)};
+
+requestAnimationFrame(loop);
+// ===================== CEREBRO DE MIKU (chat de reglas) =====================
+// Las respuestas viven en respuestas.js: ahí puedes añadir palabras y frases.
+const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}};
+const NZ=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s*]/g,' ').replace(/\s+/g,' ').trim();
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+let mem={},ani=+(ls('mikuAni')||70),cari=+(ls('mikuCari')||40);
+try{mem=JSON.parse(ls('mikuMem')||'{}')}catch(e){}
+const saveAll=()=>{ls('mikuMem',JSON.stringify(mem));ls('mikuAni',ani);ls('mikuCari',cari)};
+const DB=MIKU_DB.map(e=>({...e,re:e.k.map(k=>{const z=NZ(k);return{z,w:z.split(' ').length,r:new RegExp('(^| )'+z.replace(/\*$/,'\\w*')+'( |$)')}})}));
+function match(q){let best=null,bs=0;
+ for(const e of DB){let s=0;for(const k of e.re)if(e.x?q===k.z:k.r.test(q))s+=k.w;
+  if(s&&e.p)s+=100;if(s>bs){bs=s;best=e}}
+ return best}
+function brain(raw){const q=dial(NZ(raw));let m;
+ // Enseñarle palabras, dialecto y cumpleaños
+ if(LU&&(m=q.match(/^(?:significa|quiere decir|es como decir)\s+(.{2,40})$/))){const w=LU;LEARN[w]=m[1];LU=null;ls('mikuLearn',JSON.stringify(LEARN));unlock('profe');memo('Me enseñaste que «'+w+'» significa «'+m[1]+'»');return{t:'¡Ahora lo sé! «'+w+'» significa «'+m[1]+'». ¡Gracias por enseñarme, {n}! ♪',a:'hop',c:3}}
+ if(m=q.match(/habla(?:me)?(?: como)? (argentina|chilena|mexicana|neutro|neutra|normal)/)){DIA={argentina:'ar',chilena:'cl',mexicana:'mx'}[m[1]]||'';ls('mikuDia',DIA);return{t:DIA?'¡Dale! Voy a hablar con tu estilo ♪':'Listo, vuelvo al español neutro ♪'}}
+ if((/(^| )(cumple|cumpleanos|naci)( |$)/.test(q)&&/\d/.test(q))||awaitB){const b=parseDate(q);
+  if(b){awaitB=false;setBday(b);return{t:'¡Anotado! Tu cumpleaños es el '+b.d+' de '+MES[b.m-1]+'. ¡Ese día habrá pastel! 🎂',a:'hop',c:5}}
+  if(awaitB&&/(^| )(no|despues|luego|paso)( |$)/.test(q)){awaitB=false;PG.noB=1;save6();return{t:'Está bien, no pasa nada. Si algún día quieres, escríbeme "mi cumpleaños es el...". ♪'}}}
+ if(/(^| )mi cumple(anos)?( |$)/.test(q)&&!PG.bday){awaitB=true;setTimeout(()=>awaitB=false,18e4);return{t:'¡Cuéntame! ¿Qué día es tu cumpleaños? (ej: 3 de mayo) 🎂'}}
+ // Cosas que aprende de ti
+ if(m=q.match(/(?:me llamo|mi nombre es|puedes llamarme|llamame) ([a-z]+)/)){name=cap(m[1]);ls('mikuName',name);return{t:'¡Mucho gusto, '+name+'! Ahora lo recordaré ♪',a:'wave',c:3}}
+ if(m=q.match(/mi (\w+) favorit[oa] es (.+)/)){mem[m[1]]=m[2];memo('Me contaste que tu '+m[1]+' favorito es '+m[2]);return{t:'¡Anotado! Tu '+m[1]+' favorito es '+m[2]+'. Nunca lo olvidaré ♪',a:'hop',c:3}}
+ if(m=q.match(/cual es mi (\w+) favorit/))return{t:mem[m[1]]?'¡Tu '+m[1]+' favorito es '+mem[m[1]]+'! ¿Ves? Sí te escucho ♪':'Aún no me lo has dicho. Escríbeme: mi '+m[1]+' favorito es...'};
+ if(m=q.match(/tengo (\d{1,2}) anos/)){mem.edad=m[1];return{t:'¡'+m[1]+' años! Lo recordaré ♪',c:1}}
+ if(/que (sabes|recuerdas) de mi|que te he dicho/.test(q)){const l=Object.entries(mem).filter(([k])=>k!=='gusta').map(([k,v])=>k+': '+v);
+  if(mem.gusta)l.push('te gusta: '+mem.gusta.join(', '));return{t:l.length?'Sé que... '+l.join(' · ')+' ♪':'Aún no sé nada de ti... ¡cuéntame!'}}
+ if(m=q.match(/(?:^| )(?:me gusta|me gustan|adoro) (?:el |la |los |las |un |una )?([a-z ]{2,25})/)){
+  mem.gusta=[...new Set([...(mem.gusta||[]),m[1]])].slice(-8);return{t:pick(['¡'+cap(m[1])+'! Qué buen gusto ♪','¡A mí también me parece genial! Cuéntame más.']),c:2}}
+ // Datos en vivo
+ if(m=q.match(/^(?:canta|cantame|cantar)[: ]+(?!una |algo|tu |un |por favor|conmigo|ahora|otra|mas|bien)(.{3,80})$/)){singText(raw.replace(/^\s*\S+[:\s]+/,''));return{t:'¡Escucha! ♪'}}
+ if(/(^| )(clima real|clima automatico|hora real)( |$)/.test(q)){WXman=false;WXdayO=null;fetchWX();return{t:'¡Vuelvo a mostrar el clima real! ♪'}}
+ if(/(^| )(pon|ponme|poner|haz|cambia|activa|quiero|que llueva|que nieve|que salga)( |$)/.test(q)){const go=inroom?undefined:'room';
+  for(const[re,c]of WS)if(re.test(q)){setWeather(c);return{t:'¡Listo! Mira por mi ventana ♪',a:go}}
+  if(/(^| )noche( |$)/.test(q)){WXdayO=false;return{t:'¡Se hizo de noche! ♪',a:go}}
+  if(/(^| )de dia( |$)/.test(q)){WXdayO=true;return{t:'¡Se hizo de día! ♪',a:go}}}
+ if(WX&&/clima|llueve|lluvia|temperatura|hace frio|hace calor|esta nublado/.test(q))return{t:wxSay()};
+ if(/que hora es|dime la hora/.test(q)){const d=new Date();return{t:'Son las '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')+' ♪'}}
+ if(/que dia es|a cuantos estamos|la fecha/.test(q))return{t:'Hoy es '+new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})+' ♪'};
+ const e=match(q);
+ if(e)return{t:pick(e.r),a:e.a,c:e.c||0,m:e.m||0,p:!!e.p,ask:e.ask!==false&&!e.x&&!e.p};
+ if(q.split(' ').length<=4&&q.length>1){LU=q;return{t:'No conozco «'+raw.trim().slice(0,30)+'»... ¿Qué significa? Respóndeme así: significa ...',a:'think',ask:false}}
+ return{t:pick(MIKU_FALLBACK),a:'think',ask:false}}
+const fill=s=>s.replace(/{e}/g,ani>=60?'muy contenta':ani>=30?'tranquila':'un poquito triste').replace(/{n}/g,name||'tú');
+function doAct(a){if(a==='come'){act('walk');tgt=innerWidth/2}else if(a==='close')comeClose();else if(a==='sleep')sleep();else if(a==='game')startGame();else if(a==='room')toggleRoom();else if(a==='tv'){if(!inroom)toggleRoom();tvNext()}else if(a==='music')pickMusic();else if(a==='mic')askSing();else if(a==='diary')openDiary();else if(a==='games')openGames();else if(a==='deco')toggleDeco();else act(a)}
+function addMsg(cls,txt){const d=document.createElement('div');d.className=cls;d.textContent=txt;$('#clog').appendChild(d);$('#clog').scrollTop=1e5;return d}
+function speak(txt){talkUntil=Date.now()+txt.length*40+300;tts(txt);const el=addMsg('mk','');say(txt,Math.min(9000,2500+txt.length*60));let i=0;
+ const iv=setInterval(()=>{const ch=txt[i],z=NZ(ch);el.textContent+=ch;
+  if(ac&&!muted&&!ttsOn&&i%2==0&&/^[aeiou]$/.test(z))tone(pick([659,784,880,988,1047]),z,.07,0,1);
+  $('#clog').scrollTop=1e5;if(++i>=txt.length)clearInterval(iv)},40)}
+function mood(){$('#mood').textContent=(ani>=60?'😊':ani>=30?'😐':'😢')+' ♥'+Math.round(cari)+(typeof PG!=='undefined'?' Nv'+level()+' 🪙'+PG.pts:'')}
+function ask(raw){const r=brain(raw);
+ ani=Math.max(0,Math.min(100,ani+(r.m||0)));cari=Math.max(0,Math.min(100,cari+(r.c||0)));
+ let txt=dlect(fill(r.t));if(ani<30&&!r.p)txt=pick(['...','*suspira* '])+txt;
+ if(r.ask&&Math.random()<.2)txt+=' '+pick(MIKU_ASK);
+ saveAll();mood();setTimeout(()=>{if(r.a)doAct(r.a);speak(txt)},400)}
+function send(){const v=$('#cin').value.trim();if(!v)return;$('#cin').value='';addMsg('me',v);user();ask(v)}
+$('#csend').onclick=send;$('#cin').addEventListener('keydown',e=>{if(e.key==='Enter')send()});$('#cin').addEventListener('input',user);
+let first=true;
+$('#chatbtn').onclick=()=>{const c=$('#chat');c.style.display=c.style.display==='flex'?'none':'flex';
+ if(first&&c.style.display==='flex'){first=false;speak('¡Hola'+(name?', '+name:'')+'! Escríbeme lo que quieras ♪ Prueba con "ayuda".')}};
+// Ánimo: vuelve poco a poco a lo normal, y baja si la ignoras
+setInterval(()=>{ani+=ani>60?-1:ani<60?1:0;if(started&&Date.now()-lastUser>90000)ani=Math.max(10,ani-2);saveAll();mood()},30000);
+// Te extraña si tardas en volver
+function welcome(){const p=+ls('mikuLast')||0;ls('mikuLast',Date.now());if(!p)return null;const h=(Date.now()-p)/36e5;
+ if(h>=48)return '¡'+Math.floor(h/24)+' días sin verte, {n}! Te extrañé muchísimo ♪';
+ if(h>=20)return '¡Ayer no viniste, {n}! Te extrañé ♪';
+ if(h>=3)return '¡Qué bueno que volviste, {n}! ♪';return null}
+setInterval(()=>{if(started)ls('mikuLast',Date.now())},20000);addEventListener('pagehide',()=>{if(started)ls('mikuLast',Date.now())});
+mood();
+// ===================== PARTE 2: dormir, objetos, piano, Navidad =====================
+let zt=0;
+function zz(){const r=cv.getBoundingClientRect(),h=document.createElement('div'),x=r.left+r.width*.62,y=r.top+r.height*.25;h.textContent='z';
+ h.style.cssText=`position:fixed;left:${x}px;top:${y}px;color:#cfe8ff;font-size:18px;pointer-events:none;z-index:6;transition:all 2s steps(8)`;
+ document.body.appendChild(h);setTimeout(()=>{h.style.top=y-70+'px';h.style.left=x+25+'px';h.style.opacity=0},30);setTimeout(()=>h.remove(),2100)}
+function sleep(){tgt=null;setMode('sleep',1e9);say('Zzz... ♪',2500)}
+function wake(){setMode('idle',0);nextAct=Date.now()+8000;say(pick(['¡Ah! ¿Qué? Me quedé dormida... ♪','Mmm... ¿ya volviste, {n}? ♪']));vc([[600,'a',.15,1.2]])}
+// Piano: cada tecla es una nota cantada con su voz
+const PIANO={};'asdfghjk'.split('').forEach((k,i)=>PIANO[k]=[[523,587,659,698,784,880,988,1047][i],'aeiou'[i%5]]);
+'zxcvbnm'.split('').forEach((k,i)=>PIANO[k]=[[262,294,330,349,392,440,494][i],'aeiou'[i%5]]);
+function playKey(k){const p=PIANO[k];if(!p||!started)return;if(ac&&!muted)tone(p[0],p[1],.4,0,1);setMode('sing',.45);user()}
+function pianoKey(e){const k=e.key.toLowerCase();if(GM){if(k==='escape')gstop();else GM.key&&GM.key(k,e.repeat);return true}if(RG.on){if(k==='escape')stopGame();else if(LK[k]!==undefined&&!e.repeat)rgHit(LK[k]);return true}if(!PIANO[k]||e.repeat||e.ctrlKey||e.metaKey||e.altKey||!started)return false;playKey(k);return true}
+'asdfghjk'.split('').forEach(k=>{const b=document.createElement('button');b.textContent=k.toUpperCase();
+ b.onpointerdown=ev=>{ev.preventDefault();playKey(k)};$('#pianoRow').appendChild(b)});
+function togglePiano(){const p=$('#pianoRow');p.style.display=p.style.display==='flex'?'none':'flex'}
+// Objetos: arrástralos hasta Miku, o suéltalos en el suelo y ella va por ellos
+const ITEMS={'🥬':{a:'leek',t:['¡Mi puerro! ¡Gracias, {n}! ♪','¡Ñam! ¡Qué rico!'],c:4},'🎁':{a:'hop',t:['¡¿Es para mí?! ¡Gracias, {n}! ♥'],c:6},
+ '🎧':{a:'dance',t:['¡Música! ¡Vamos a bailar! ♪'],c:3},'🍰':{a:'hop',t:['¡Un pastelito! ¡Delicioso! ♥'],c:4}};
+let pend=null;
+function giveItem(it){const o=ITEMS[it],r=cv.getBoundingClientRect();act(o.a);say(pick(o.t));hearts(r.left+r.width/2,r.top+r.height*.3);
+ cari=Math.min(100,cari+o.c);ani=Math.min(100,ani+8);saveAll();mood()}
+function drop(it,x,y){const r=cv.getBoundingClientRect();
+ if(x>r.left&&x<r.right&&y>r.top&&y<r.bottom){giveItem(it);return}
+ if(pend)pend.el.remove();
+ const el=document.createElement('div');el.textContent=it;
+ el.style.cssText=`position:fixed;left:${x}px;bottom:${floorH()}px;transform:translateX(-50%);font-size:34px;z-index:3;pointer-events:none`;
+ document.body.appendChild(el);pend={it,x,el};tgt=x;if(closeUp)closeUp=false}
+setInterval(()=>{if(pend&&Math.abs(X-pend.x)<60){const p=pend;pend=null;p.el.remove();giveItem(p.it)}},200);
+document.querySelectorAll('.it').forEach(el=>el.addEventListener('pointerdown',e=>{
+ if(!started)return;e.preventDefault();user();const it=el.dataset.i,g=document.createElement('div');g.className='drag';g.textContent=it;document.body.appendChild(g);
+ const mv=ev=>{g.style.left=ev.clientX+'px';g.style.top=ev.clientY+'px'};mv(e);
+ const up=ev=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);g.remove();drop(it,ev.clientX,ev.clientY)};
+ addEventListener('pointermove',mv);addEventListener('pointerup',up)}));
+// Navidad: gorro + nieve (automática en diciembre; el botón 🎄 la prende o apaga)
+const _d=new Date();let xmas=ls('mikuXmas')!==null?ls('mikuXmas')==='1':(_d.getMonth()===11||(_d.getMonth()===0&&_d.getDate()<=6));
+function snow(on){document.querySelectorAll('.snow').forEach(e=>e.remove());
+ if(on)for(let i=0;i<50;i++){const f=document.createElement('div');f.className='snow';
+  f.style.cssText+=`left:${Math.random()*100}vw;animation-duration:${6+Math.random()*6}s;animation-delay:${-Math.random()*10}s`;document.body.appendChild(f)}}
+function toggleXmas(){xmas=!xmas;ls('mikuXmas',xmas?'1':'0');snow(xmas);if(xmas)say('¡Feliz Navidad, {n}! 🎄♪')}
+snow(xmas);
+// ===================== PARTE 3: minijuego de ritmo + app instalable =====================
+// Cae una nota por columna: pulsa D F J K (o toca la columna) justo cuando llegue a la línea. Esc o ✕ para salir.
+const RG={on:false,over:0},LK={d:0,f:1,j:2,k:3},LF=[523,659,784,988],LV=['a','e','i','o'];
+const PAT=[0,1,2,3,2,1,0,2,1,3,2,0,1,2,3,1,0,0,2,2,1,3,3,1,0,2,1,3,2,3,1,0,3,2,1,0];
+const rc=document.createElement('canvas');rc.id='rg';document.body.appendChild(rc);const rx=rc.getContext('2d');
+const geo=()=>{const lw=Math.min(innerWidth*.9/4,70);return[lw,(innerWidth-4*lw)/2]};
+const fb=t=>{RG.fb=t;RG.fbT=performance.now()/1000+.6};
+function startGame(){if(!started||RG.on)return;$('#chat').style.display='none';rc.width=innerWidth;rc.height=innerHeight;rc.style.display='block';
+ Object.assign(RG,{on:true,over:0,t0:performance.now()/1000+2.5,notes:PAT.map((l,i)=>({l,t:i*.55,hit:0})),score:0,combo:0,fb:'',fbT:0});
+ setMode('dance',60);say('¡Vamos! Teclas D F J K, o toca las columnas ♪',3000);requestAnimationFrame(rgLoop)}
+function stopGame(){RG.on=false;rc.style.display='none';setMode('idle',0)}
+function rgHit(l){if(!RG.on)return;user();const now=performance.now()/1000;let b=null,bd=9;
+ for(const n of RG.notes)if(n.l===l&&n.hit===0){const d=Math.abs(n.t+RG.t0-now);if(d<bd){bd=d;b=n}}
+ if(b&&bd<.2){b.hit=1;const p=bd<.07;RG.score+=p?100:50;RG.combo++;fb(p?'¡PERFECTO!':'¡Bien!');
+  if(ac&&!muted)tone(LF[l],LV[l],.3,0,1);setMode('dance',60)}else{RG.combo=0;fb('...')}}
+rc.addEventListener('pointerdown',e=>{if(e.clientY<44&&e.clientX>innerWidth-60){stopGame();return}
+ const[lw,x0]=geo(),l=Math.floor((e.clientX-x0)/lw);if(l>=0&&l<4)rgHit(l)});
+function finish(){const hits=RG.notes.filter(n=>n.hit===1).length,q=hits/RG.notes.length,hi=+ls('mikuHi')||0;
+ let m=q>=.9?'¡Increíble, {n}! ♪':q>=.6?'¡Bien hecho, {n}! ♪':'¡Otra vez! Tú puedes ♪';
+ if(RG.score>hi){ls('mikuHi',RG.score);m+=' ¡Récord nuevo: '+RG.score+'!'}else m+=' Puntos: '+RG.score+' (récord '+hi+')';
+ cari=Math.min(100,cari+5);ani=Math.min(100,ani+8);saveAll();mood();act(q>=.6?'hop':'wave');say(m,6000)}
+function rgLoop(){if(!RG.on)return;const now=performance.now()/1000,W=innerWidth,H=innerHeight,[lw,x0]=geo(),hy=H*.78,sp=H*.5;
+ rx.clearRect(0,0,W,H);rx.fillStyle='rgba(10,15,40,.45)';rx.fillRect(x0,0,4*lw,H);
+ for(let i=0;i<4;i++){rx.fillStyle=i%2?'rgba(255,255,255,.06)':'rgba(255,255,255,.12)';rx.fillRect(x0+i*lw,0,lw-2,H)}
+ rx.fillStyle='#00e5d8';rx.fillRect(x0,hy,4*lw,4);
+ for(const n of RG.notes){const dt=n.t+RG.t0-now;
+  if(n.hit===0&&dt<-.2){n.hit=-1;RG.combo=0;fb('¡Fallaste!')}
+  if(n.hit===0){const y=hy-dt*sp;if(y>-20&&y<H){rx.fillStyle=['#ff5c8a','#ffd23f','#3fe0a5','#6fa8ff'][n.l];rx.fillRect(x0+n.l*lw+6,y-9,lw-14,18)}}}
+ rx.fillStyle='#fff';rx.font='bold 11px monospace';['D','F','J','K'].forEach((k,i)=>rx.fillText(k,x0+i*lw+lw/2-4,hy+26));
+ rx.fillText('PUNTOS '+RG.score+'  COMBO '+RG.combo,x0,24);rx.fillText('✕',W-30,24);if(RG.fbT>now)rx.fillText(RG.fb,x0,46);
+ if(!RG.over&&RG.notes.every(n=>n.hit!==0)){RG.over=now+1.2;finish()}
+ if(RG.over&&now>RG.over){RG.on=false;rc.style.display='none';return}
+ requestAnimationFrame(rgLoop)}
+// App instalable (solo funciona ya publicada en https, como en GitHub Pages)
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+// ===================== PARTE 4: habitación, ventana con clima real, TV =====================
+const RAIN=c=>(c>=51&&c<=67)||(c>=80&&c<=82)||c>=95;
+const WD=c=>c===0?'despejado':c<=2?'parcialmente nublado':c===3?'nublado':c<=48?'con niebla':c<=57?'con llovizna':c<=67?'lluvioso':c<=77?'con nieve':c<=82?'con chubascos':c<=86?'con nieve':'con tormenta';
+let WX=null,LOC=null,inroom=false,goal=null,tvc=0,lampOn=true,fr=0,lofiIv=null,beat=0,rn=null;
+try{LOC=JSON.parse(ls('mikuLoc')||'null')}catch(e){}
+const wxSay=()=>WX.manual?'Mi ventana muestra un día '+WD(WX.code)+' ♪':'Afuera está '+WD(WX.code)+', a '+WX.t+'°C (hoy entre '+WX.min+' y '+WX.max+'°) ♪';
+async function askLoc(){const c=prompt('¿En qué ciudad estás? (déjalo vacío para usar tu ubicación)');if(c===null)return;
+ try{if(c.trim()){const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=es&name='+encodeURIComponent(c.trim())),j=await r.json(),p=j.results&&j.results[0];
+   if(!p){say('No encontré esa ciudad :(');return}LOC={lat:p.latitude,lon:p.longitude,name:p.name}}
+  else{const p=await new Promise((ok,no)=>navigator.geolocation.getCurrentPosition(ok,no));LOC={lat:p.coords.latitude,lon:p.coords.longitude,name:'tu zona'}}
+  ls('mikuLoc',JSON.stringify(LOC));fetchWX()}catch(e){say('No pude ubicarte :(')}}
+async function fetchWX(){if(WXman)return;if(!LOC){say('Dime tu ciudad para ver el clima por mi ventana ♪',3000);setTimeout(askLoc,1500);return}
+ try{const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LOC.lat}&longitude=${LOC.lon}&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min&timezone=auto`),j=await r.json();
+  WX={t:Math.round(j.current.temperature_2m),code:j.current.weather_code,day:!!j.current.is_day,max:Math.round(j.daily.temperature_2m_max[0]),min:Math.round(j.daily.temperature_2m_min[0])};
+  rainSnd();if(inroom)say(wxSay(),5000)}catch(e){say('No pude ver el clima ahora :(')}}
+const wc=$('#win').getContext('2d'),tc=$('#tvc').getContext('2d');
+const Rr=(g,x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))};
+function sky(){const g=wc,W_=40,H_=30,d=new Date(),tt=d.getHours()+d.getMinutes()/60,day=WXdayO!==null?WXdayO:(WX?WX.day:(tt>=7&&tt<19)),code=WX?WX.code:1,
+  rain=RAIN(code),sn=(code>=71&&code<=77)||code===85||code===86,gray=code>=3,dusk=day&&(tt<8||tt>=18);
+ Rr(g,0,0,W_,H_,day?(gray?'#8a97a8':dusk?'#ff9a76':'#5ec8ff'):(gray?'#2a3042':'#0b1230'));
+ if(!day&&!gray)for(let i=0;i<14;i++)if(((i+fr/20)|0)%5)Rr(g,(i*37)%W_,(i*17)%18,1,1,'#fff');
+ if(!gray||code===3){const f=day?(tt-6)/12:((tt+6)%24)/12;if(f>=0&&f<=1)Rr(g,f*W_-3,H_*.6-Math.sin(f*PI)*H_*.5,day?6:5,day?6:5,day?'#ffe45e':'#f2f2d9')}
+ if(code>0)for(let i=0;i<(code<3?2:5);i++)Rr(g,((fr/8+i*13)%(W_+12))-10,4+(i*4)%14,9,3,gray?'#c9ced6':'#fff');
+ if(rain)for(let i=0;i<16;i++)Rr(g,(i*7)%W_,(fr*2+i*11)%H_,1,3,'#9ecbff');
+ if(sn)for(let i=0;i<16;i++)Rr(g,Math.abs(i*7+Math.sin(fr/9+i)*2)%W_,(fr/2+i*9)%H_,1,1,'#fff');
+ if(code>=95&&fr%70<3)Rr(g,0,0,W_,H_,'#fff');
+ hills(g,W_,H_,0);Rr(g,0,H_-5,W_,5,'#2f4f3a');Rr(g,5,H_-8,6,3,'#3b3b52');Rr(g,24,H_-10,8,5,'#3b3b52');Rr(g,15,H_-7,5,2,'#3b3b52')}
+function tvDraw(){const g=tc;Rr(g,0,0,96,72,tvc?'#10204a':'#0a0a0a');g.font='8px monospace';g.fillStyle='#fff';
+ if(tvc===1){Rr(g,0,0,96,10,'#1f6feb');g.fillStyle='#fff';g.fillText('CLIMA',4,8);g.fillText(WX&&LOC?LOC.name.slice(0,14):'sin ciudad',4,24);
+  g.font='bold 18px monospace';g.fillText(WX&&!WX.manual?WX.t+'°C':'--',4,46);g.font='8px monospace';g.fillText(WX?WD(WX.code):'toca el 📍',4,58);g.fillText(WX&&!WX.manual?'min '+WX.min+' max '+WX.max:'',4,68)}
+ if(tvc===2){for(let i=0;i<12;i++){const h=6+Math.abs(Math.sin(fr/6+i*1.3))*40*(.5+.5*Math.sin(fr/17+i));Rr(g,6+i*7,60-h,5,h,i%2?'#00e5d8':'#ff5c8a')}g.fillStyle='#fff';g.fillText('♪ RADIO MIKU 24h',8,10)}
+ if(tvc===3){Rr(g,0,0,96,72,`hsl(${fr*3%360},60%,25%)`);const x=(fr*2)%110-10,y=40+Math.sin(fr/5)*12;Rr(g,x,y,8,3,'#3fbf4a');Rr(g,x+8,y,4,3,'#e8ffe0');g.fillStyle='#fff';g.fillText('MIKU TV ♪',24,14)}
+ if(tvc===4){Rr(g,0,0,96,72,'#2b1055');g.fillStyle='#ff5c8a';g.fillText('🎤 KARAOKE',4,9);g.font='10px monospace';
+  const ws=KO?KO.ws:['Escribe','en','el','chat:','canta','hola'];let x=4,y=30;
+  ws.forEach((w,i)=>{const wd=g.measureText(w+' ').width;if(x+wd>92){x=4;y+=14}g.fillStyle=KO&&i<=KO.i?'#00e5d8':'#fff';g.fillText(w,x,y);x+=wd})}
+ if(!tvc){g.fillStyle='#333';g.fillText('(apagada)',26,38)}}
+setInterval(()=>{if(inroom){fr++;sky();tvDraw()}},120);
+setInterval(()=>{const d=new Date();$('#clock').textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')},1000);
+setInterval(()=>{if(inroom&&LOC)fetchWX()},9e5);
+// Música lo-fi generada por el navegador y lluvia suave
+const CH=[[220,261.6,329.6,392],[174.6,220,261.6,329.6],[130.8,164.8,196,261.6],[196,246.9,293.7,392]];
+function pad(f,d,v,ty){if(!ac||muted)return;const o=ac.createOscillator(),l=ac.createBiquadFilter(),g=ac.createGain(),t0=ac.currentTime;
+ o.type=ty;o.frequency.value=f;l.type='lowpass';l.frequency.value=900;g.gain.setValueAtTime(v,t0);g.gain.exponentialRampToValueAtTime(.001,t0+d);
+ o.connect(l);l.connect(g);g.connect(ac.destination);o.start(t0);o.stop(t0+d)}
+function lofi(on){clearInterval(lofiIv);lofiIv=null;if(on)lofiIv=setInterval(()=>{const c=CH[(beat>>3)&3];pad(c[beat%4],.9,.07,'triangle');if(beat%8===0)pad(c[0]/2,1.6,.12,'sine');beat++},450)}
+function rainSnd(){const want=inroom&&WX&&RAIN(WX.code)&&ac&&!muted;
+ if(want&&!rn){const b=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=b;s.loop=true;f.type='lowpass';f.frequency.value=1400;g.gain.value=.05;
+  s.connect(f);f.connect(g);g.connect(ac.destination);s.start();rn=s}else if(!want&&rn){rn.stop();rn=null}}
+// Entrar a la habitación y objetos con los que interactúa
+function goTo(x,fn){goal={x,fn};tgt=x}
+setInterval(()=>{if(goal&&Math.abs(X-goal.x)<40){const g=goal;goal=null;g.fn()}},250);
+function toggleRoom(){inroom=!inroom;document.body.classList.toggle('inroom',inroom);
+ if(inroom){X=60;tgt=innerWidth*.5;say((Date.now()-plantT)/36e5>72?'¡Mi plantita se está secando, {n}! 🥀':'¡Bienvenido/a a mi cuarto, {n}! ♪');fetchWX()}
+ else{goal=null;lofi(false);rainSnd();say('¡De vuelta afuera! ♪')}rainSnd()}
+function tvNext(){tvc=(tvc+1)%5;lofi(tvc===2);say(['TV apagada','📺 CLIMA','📺 RADIO MIKU 24h','📺 MIKU TV','📺 KARAOKE'][tvc],2000)}
+function lookWindow(){const r=$('#winf').getBoundingClientRect();goTo(r.left+r.width/2,()=>{setMode('think',3);say(WX?wxSay():'Toca el 📍 y dime tu ciudad para ver el clima ♪',5000)})}
+$('#winf').onclick=()=>{user();lookWindow()};
+$('#tv').onclick=()=>{user();tvNext()};
+$('#lamp').onclick=()=>{user();lampOn=!lampOn;document.body.classList.toggle('lampoff',!lampOn);say(lampOn?'¡Luz! ♪':'Apagando la luz... ♪',2000)};
+$('#bed').onclick=()=>{user();const r=$('#bed').getBoundingClientRect();goTo(r.left+r.width/2,()=>{sleep();say('Zzz...')})};
+$('#clock').onclick=()=>{user();const d=new Date();say('Son las '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')+' ♪',2500)};
+$('#locbtn').onclick=()=>{user();askLoc()};
+setInterval(()=>{if(inroom&&started&&mode==='idle'&&!goal&&!closeUp&&Math.random()<.5){if(Math.random()<.6)lookWindow();else tvNext()}},25000);
+// ===================== PARTE 5: música tuya, karaoke, clima a elección, más objetos =====================
+let WXman=false,WXdayO=null,KO=null,MA=null,AN=null,mp=0,mavg=0,lastB=0,mfreq=null,plantT=+ls('mikuPlant')||Date.now();
+const WS=[[/(^| )(tormenta|trueno|relampago)s?( |$)/,95],[/(^| )(nieve|nieva|nevar)( |$)/,73],[/(^| )(lluvia|llueva|llover)( |$)/,63],[/(^| )(niebla|neblina)( |$)/,45],[/(^| )(nublado|nubes)( |$)/,3],[/(^| )(soleado|sol|despejado)( |$)/,0]];
+function setWeather(c){WXman=true;WX={t:20,code:c,day:true,min:12,max:24,manual:1};rainSnd()}
+document.querySelectorAll('#wxrow button').forEach(b=>b.onclick=()=>{user();const w=b.dataset.w;
+ if(w==='real'){WXman=false;WXdayO=null;fetchWX();say('Clima real ♪',1500)}
+ else if(w==='dn'){WXdayO=WXdayO===null?true:WXdayO===true?false:null;say(WXdayO===null?'Hora real ♪':WXdayO?'Día ☀️':'Noche 🌙',1500)}
+ else{setWeather(+w);say('Clima: '+WD(+w)+' ♪',1500)}});
+// Baile con TU música: arrastra un archivo de audio a la página o usa el botón 🎶
+function playMusic(f){if(!ac||!started){say('Primero entra a la página ♪');return}stopMusic();if(ac.resume)ac.resume();
+ const a=new Audio(URL.createObjectURL(f)),sr=ac.createMediaElementSource(a);MA=a;AN=ac.createAnalyser();AN.fftSize=256;mfreq=new Uint8Array(AN.frequencyBinCount);
+ sr.connect(AN);AN.connect(ac.destination);a.onended=stopMusic;a.play().catch(()=>{});$('#lights').style.display='block';
+ setMode('dance',1e9);say('¡Qué buena canción, {n}! ♪ '+f.name.slice(0,20),4000)}
+function stopMusic(){if(MA){MA.pause();MA=null}AN=null;mp=0;$('#lights').style.display='none';if(mode==='dance')setMode('idle',0)}
+function pickMusic(){if(MA)stopMusic();else $('#mfile').click()}
+$('#mfile').onchange=e=>{const f=e.target.files[0];if(f)playMusic(f);e.target.value=''};
+addEventListener('dragover',e=>e.preventDefault());
+addEventListener('drop',e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('audio'))playMusic(f)});
+setInterval(()=>{if(!AN)return;AN.getByteFrequencyData(mfreq);let e=0;for(let i=1;i<7;i++)e+=mfreq[i];e/=6*255;mavg=mavg*.95+e*.05;
+ if(e>mavg*1.25&&e>.35&&Date.now()-lastB>230){lastB=Date.now();mp=1}mp=Math.max(0,mp-.12);
+ $('#lights').style.opacity=.2+mp*.6+e*.2;if(MA)MA.muted=muted;if(mode==='idle')setMode('dance',1e9);user()},50);
+// Karaoke: canta lo que escribas ("canta hola mundo" en el chat, o el botón 🎤)
+function singText(txt){if(!ac||muted){say('Activa el sonido 🔊 para que pueda cantar ♪');return}
+ const ws=txt.split(/\s+/).slice(0,16),SC=[523,587,659,784,880,988,1047,1175];let at=0,idx=3;if(inroom)tvc=4;KO={ws,i:-1};
+ ws.forEach((w,wi)=>{const vs=NZ(w).match(/[aeiou]/g)||['a'];setTimeout(()=>{KO.i=wi;if(!inroom)say(w,900)},at*1000);
+  vs.forEach((v,vi)=>{idx=Math.max(0,Math.min(7,idx+pick([1,1,-1,2,-2,0])));const f=SC[idx],d=vi===vs.length-1?.35:.22;
+   setTimeout(()=>{tone(f,v,d,0,1);setMode('sing',.4)},at*1000);at+=d*1.05});at+=.12});
+ setTimeout(()=>{KO=null;if(mode==='sing')setMode('idle',0)},at*1000+600)}
+function askSing(){const t=prompt('¿Qué quieres que cante Miku? Escribe una frase');if(t&&t.trim())singText(t.trim())}
+// Más cosas en la casa: planta que hay que regar, peluche y micrófono
+function plantUpd(){const h=(Date.now()-plantT)/36e5;$('#plant').textContent=h>72?'🥀':'🪴';$('#plant').style.opacity=h>24&&h<=72?.8:1}
+$('#plant').onclick=()=>{user();const r=$('#plant').getBoundingClientRect();goTo(r.left+r.width/2,()=>{const w=(Date.now()-plantT)/36e5>72;
+ plantT=Date.now();ls('mikuPlant',plantT);plantUpd();unlock('jardinera');gain(3,2);act('hop');say(w?'¡Se salvó mi plantita! Gracias, {n} ♥':'¡Glug glug! Planta feliz ♪');cari=Math.min(100,cari+(w?5:2));saveAll();mood()})};
+$('#bear').onclick=()=>{user();const r=$('#bear').getBoundingClientRect();goTo(r.left+r.width/2,()=>{const c=cv.getBoundingClientRect();hearts(c.left+c.width/2,c.top+c.height*.3);
+ act('hop');say('*abraza a su peluche* ♥');cari=Math.min(100,cari+3);saveAll();mood()})};
+$('#mic').onclick=()=>{user();const r=$('#mic').getBoundingClientRect();goTo(r.left+r.width/2,()=>{say('¡Hora del karaoke! ♪',1500);askSing()})};
+plantUpd();setInterval(plantUpd,60000);
+// ===================== PARTE 6: modismos, progreso, diario, logros, cumpleaños =====================
+var PG={pts:0,xp:0,streak:0,best:0,last:'',mins:0,ach:{},diary:[],bday:null,noB:0,cel:0};
+try{Object.assign(PG,JSON.parse(ls('mikuPG')||'{}'))}catch(e){}
+let LEARN={},DIA=ls('mikuDia')||'',LU=null,awaitB=false,bdayMode=false;const sessT=Date.now();
+try{LEARN=JSON.parse(ls('mikuLearn')||'{}')}catch(e){}
+const save6=()=>ls('mikuPG',JSON.stringify(PG));
+const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const pad2=n=>String(n).padStart(2,'0'),dstr=d=>d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()),today=()=>dstr(new Date());
+// --- Modismos: argentino (vos), chileno (vo, cachai...), mexicano; se traducen a español neutro antes de entender
+const DIALM={tenes:'tienes',queres:'quieres',podes:'puedes',sos:'eres',vos:'tu',decime:'dime',contame:'cuentame',veni:'ven',che:'',boludo:'',boluda:'',barbaro:'genial',copado:'genial',re:'muy',posta:'de verdad',laburo:'trabajo',plata:'dinero',pibe:'chico',
+ cachai:'entiendes',po:'',weon:'',wn:'',huevon:'',bacan:'genial',fome:'aburrido','al tiro':'ahora',carrete:'fiesta','la raja':'genial',vo:'tu',tai:'estas',estai:'estas',queri:'quieres',teni:'tienes',sabi:'sabes',
+ orale:'ok',ahorita:'ahora',chido:'genial',chamba:'trabajo',neta:'de verdad',wey:'',guey:'','no manches':'no puede ser',lana:'dinero'};
+const DK=Object.keys(DIALM).map(k=>[new RegExp('(?<= |^)'+k+'(?= |$)','g'),DIALM[k]]);
+function dial(n){const T=(l)=>new RegExp('(^| )('+l+')( |$)');
+ if(T('vos|tenes|queres|podes|sos|decime|contame|veni|che|boludo|boluda|copado|barbaro|laburo|pibe').test(n))DIA='ar';
+ else if(T('cachai|po|weon|wn|huevon|bacan|fome|tai|estai|queri|teni|sabi|vo|al tiro|carrete').test(n))DIA='cl';
+ else if(T('orale|ahorita|chido|chamba|neta|wey|guey|no manches').test(n))DIA='mx';
+ ls('mikuDia',DIA);for(const[r,v]of DK)n=n.replace(r,v);
+ for(const k in LEARN)n=n.replace(new RegExp('(?<= |^)'+k+'(?= |$)','g'),LEARN[k]);return n.replace(/\s+/g,' ').trim()}
+const ARW=[['tú','vos'],['eres','sos'],['tienes','tenés'],['quieres','querés'],['puedes','podés'],['dime','decime'],['cuéntame','contame'],['escríbeme','escribime'],['pídeme','pedime'],['prueba','probá'],['mira','mirá']]
+ .map(([a,b])=>[new RegExp('(?<![\\wáéíóúñ])'+a+'(?![\\wáéíóúñ])','gi'),b]);
+function dlect(t){if(DIA==='ar'){for(const[r,b]of ARW)t=t.replace(r,x=>x[0]===x[0].toUpperCase()?cap(b):b);if(Math.random()<.2)t+=' ¿Viste?'}
+ else if(DIA==='cl'){if(Math.random()<.3)t+=' ¿Cachai?'}else if(DIA==='mx'&&Math.random()<.25)t='¡Órale! '+t;return t}
+// --- Puntos, niveles, logros, recuerdos
+const need=L=>20*(L-1)*(L-1),level=()=>{let L=1;while(PG.xp>=need(L+1))L++;return L};
+function memo(t){PG.diary.push({d:today(),t});if(PG.diary.length>80)PG.diary.shift();save6()}
+function gain(xp,pts){const L0=level();PG.xp+=xp;PG.pts+=pts;const L=level();
+ if(L>L0){PG.pts+=15;memo('¡Subimos al nivel '+L+'!');setTimeout(()=>{say('¡Nivel '+L+', {n}! ♪ (+15 🪙)',4500);act('hop')},600);if(L>=5)unlock('nivel5');if(L>=10)unlock('nivel10')}save6();mood()}
+const ACH=[['primera','Primera visita','Entraste por primera vez'],['racha3','Constante','3 días seguidos'],['racha7','Semana juntos','7 días seguidos'],['racha30','Inseparables','30 días seguidos'],['nivel5','Nivel 5','Llega al nivel 5'],['nivel10','Nivel 10','Llega al nivel 10'],['ritmo','Ritmo','Termina el minijuego'],['cantante','Dúo','Hazla cantar tu frase'],['dj','DJ','Hazla bailar con tu música'],['jardinera','Jardinera','Riega la planta'],['profe','Profesor/a','Enséñale una palabra'],['cumple','Pastelito','Cuéntale tu cumpleaños'],['noct','Noctámbulo/a','Habla con ella de madrugada'],['horas','Una hora juntos','60 minutos con Miku'],['clima','Controlador del clima','Cambia el clima'],['secreto','Secreto','Encuentra un huevo de Pascua']];
+function unlock(id){if(PG.ach[id])return;const a=ACH.find(x=>x[0]===id);if(!a)return;PG.ach[id]=today();PG.pts+=10;memo('🏆 Logro: '+a[1]);save6();
+ setTimeout(()=>{say('🏆 Logro: '+a[1]+' (+10 🪙)',4000);vc([[880,'i',.1],[1175,'i',.1],[1397,'i',.25]])},300)}
+function daily(){const t=today();if(PG.last===t)return;const ys=dstr(new Date(Date.now()-864e5));
+ PG.streak=PG.last===ys?PG.streak+1:1;PG.best=Math.max(PG.best,PG.streak);PG.last=t;const b=Math.min(PG.streak,7);
+ gain(10+b*2,10+b);unlock('primera');if(PG.streak>=3)unlock('racha3');if(PG.streak>=7)unlock('racha7');if(PG.streak>=30)unlock('racha30');
+ if(PG.streak>1)memo('Llevamos '+PG.streak+' días seguidos juntos 🔥');
+ setTimeout(()=>say(PG.streak>1?'¡Racha de '+PG.streak+' días, {n}! 🔥 (+'+(10+b)+' 🪙)':'¡Puntos diarios! (+10 🪙) ♪',4500),5200)}
+setInterval(()=>{if(started&&!document.hidden){PG.mins++;if(PG.mins>=60)unlock('horas');save6()}},60000);
+// Ganan puntos las acciones que ya existían
+const _ask=ask;ask=function(r){gain(2,1);if(new Date().getHours()<5)unlock('noct');if(NZ(r)==='39')unlock('secreto');return _ask(r)};
+const _gi=giveItem;giveItem=function(i){gain(5,3);return _gi(i)};
+const _fin=finish;finish=function(){gain(10,8+Math.floor(RG.score/100));unlock('ritmo');return _fin()};
+const _sg=singText;singText=function(t){unlock('cantante');gain(3,2);return _sg(t)};
+const _pm=playMusic;playMusic=function(f){unlock('dj');gain(4,2);return _pm(f)};
+const _sw=setWeather;setWeather=function(c){unlock('clima');return _sw(c)};
+const _w=welcome;welcome=function(){const r=_w();daily();setTimeout(checkBday,9000);return r};
+// Huevo de Pascua: código Konami
+let kb=[];addEventListener('keydown',e=>{kb=[...kb,e.key.toLowerCase()].slice(-10);
+ if(kb.join()==='arrowup,arrowup,arrowdown,arrowdown,arrowleft,arrowright,arrowleft,arrowright,b,a'){unlock('secreto');confetti(50);act('dance');say('¡Código secreto! ♪')}});
+// --- Cumpleaños
+function parseDate(q){let m=q.match(/(\d{1,2}) de ([a-z]+)/);
+ if(m){const i=MES.indexOf(m[2].replace('setiembre','septiembre'));if(i>=0&&+m[1]>=1&&+m[1]<=31)return{d:+m[1],m:i+1}}
+ if(awaitB){m=q.match(/^(\d{1,2}) (\d{1,2})( \d{2,4})?$/);if(m&&+m[1]>=1&&+m[1]<=31&&+m[2]>=1&&+m[2]<=12)return{d:+m[1],m:+m[2]}}return null}
+function setBday(b){PG.bday=b;PG.noB=0;save6();unlock('cumple');memo('Me contaste que tu cumpleaños es el '+b.d+' de '+MES[b.m-1]);gain(10,10);checkBday()}
+function confetti(n){for(let i=0;i<n;i++){const f=document.createElement('div');
+ f.style.cssText=`position:fixed;top:-10px;left:${Math.random()*100}vw;width:7px;height:7px;background:hsl(${Math.random()*360},90%,60%);z-index:6;pointer-events:none;animation:fall linear forwards;animation-duration:${3+Math.random()*3}s`;
+ document.body.appendChild(f);setTimeout(()=>f.remove(),6500)}}
+function checkBday(){const b=PG.bday;if(!b||!started)return;const n=new Date(),y=n.getFullYear(),diff=Math.round((new Date(y,b.m-1,b.d)-new Date(y,n.getMonth(),n.getDate()))/864e5);
+ if(diff===0)bdayMode=true;
+ if(diff<=0&&diff>=-3&&PG.cel!==y){PG.cel=y;save6();bdayMode=true;$('#cake').style.display='block';confetti(60);
+  setTimeout(()=>{say((diff<0?'¡Feliz cumpleaños atrasado':'¡Feliz cumpleaños')+', {n}! 🎂',6000);singText('Feliz cumpleaños '+(name||'a ti'))},800);gain(30,50);memo('Celebramos tu cumpleaños 🎂')}
+ else if(diff>0&&diff<=7&&PG.cdDay!==today()){PG.cdDay=today();save6();say('¡Faltan '+diff+' días para tu cumpleaños, {n}! 🎂',5000)}}
+$('#cake').onclick=()=>{user();$('#cake').textContent='🍰';confetti(40);act('hop');say('¡Soplaste las velas! Pide un deseo, {n} ✨',5000);setTimeout(()=>{$('#cake').style.display='none';$('#cake').textContent='🎂'},6000)};
+setInterval(()=>{if(started&&!PG.bday&&!PG.noB&&!awaitB&&visits>=2&&Date.now()-sessT>90000&&PG.askD!==today()&&mode!=='sleep'){
+ PG.askD=today();save6();awaitB=true;setTimeout(()=>awaitB=false,18e4);say('¿Cuándo es tu cumpleaños, {n}? Quiero acordarme 🎂 (escríbeme algo como "3 de mayo")',7000)}},20000);
+// --- Diario y exportar progreso
+function openDiary(){const L=level(),a=need(L),b=need(L+1),pct=Math.min(100,(PG.xp-a)/(b-a)*100);
+ const mm=Object.entries(mem).filter(([k])=>k!=='gusta').map(([k,v])=>k+': '+v);if(mem.gusta)mm.push('te gusta: '+mem.gusta.join(', '));if(PG.bday)mm.push('cumpleaños: '+PG.bday.d+' de '+MES[PG.bday.m-1]);
+ $('#diary').innerHTML=`<button id="dx" style="float:right">✕</button><h3>📖 DIARIO DE MIKU Y ${esc(name||'TÚ')}</h3><div>Nivel ${L} · ${PG.xp} XP</div><div class="bar"><i style="width:${pct}%"></i></div>
+ <div>🪙 ${PG.pts} puntos · 🔥 racha ${PG.streak} (récord ${PG.best}) · ⏱️ ${PG.mins} min juntos · 🧠 ${Object.keys(LEARN).length} palabras que me enseñaste</div>
+ <h3>🏆 LOGROS (${Object.keys(PG.ach).length}/${ACH.length})</h3>${ACH.map(([i,n,d])=>`<span class="ach ${PG.ach[i]?'':'lock'}" title="${esc(d)}">${PG.ach[i]?'🏆':'🔒'} ${esc(n)}</span>`).join('')}
+ <h3>💭 LO QUE SÉ DE TI</h3><div>${mm.length?mm.map(esc).join(' · '):'Aún nada... ¡cuéntame!'}</div>
+ <h3>📓 RECUERDOS</h3>${PG.diary.slice(-25).reverse().map(e=>'<div>'+e.d+' · '+esc(e.t)+'</div>').join('')||'<div>Aún no hay recuerdos.</div>'}
+ <h3>💾 TU PROGRESO</h3><button id="dex">Exportar código</button> <button id="dim">Importar código</button>
+ <div>Tu progreso vive solo en este navegador. Exporta tu código para llevarlo a otro dispositivo.</div>`;
+ $('#diary').style.display='block';$('#dx').onclick=()=>$('#diary').style.display='none';$('#dex').onclick=exportP;$('#dim').onclick=importP}
+function exportP(){const o={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith('miku'))o[k]=localStorage.getItem(k)}}catch(e){}
+ const code=btoa(unescape(encodeURIComponent(JSON.stringify(o))));try{navigator.clipboard.writeText(code).then(()=>say('¡Código copiado! Guárdalo bien ♪',3000))}catch(e){}prompt('Tu código de progreso (cópialo):',code)}
+function importP(){const c=prompt('Pega tu código de progreso:');if(!c)return;
+ try{const o=JSON.parse(decodeURIComponent(escape(atob(c.trim()))));Object.keys(o).forEach(k=>{if(k.startsWith('miku'))ls(k,String(o[k]))});say('¡Progreso importado! Recargando...',2000);setTimeout(()=>location.reload(),1200)}catch(e){say('Ese código no parece válido :(',3000)}}
+mood();
+// ===================== PARTE 7: pulido de vida =====================
+var hipS=0,hipT=0,nextHip=0,openUntil=0,nextPeek=0,exs=0,DT=.016,dv=0,LM=0,blushT=0,talkUntil=0,nt=0,hidAt=0,PL=null;
+const sh=$('#shadow');
+function fl(ch,col){const r=cv.getBoundingClientRect(),h=document.createElement('div'),x=r.left+r.width*(.35+Math.random()*.3),y=r.top+r.height*.2;h.textContent=ch;
+ h.style.cssText=`position:fixed;left:${x}px;top:${y}px;color:${col};font-size:20px;pointer-events:none;z-index:6;transition:all 2s steps(8)`;document.body.appendChild(h);
+ setTimeout(()=>{h.style.top=y-80+'px';h.style.left=x+(Math.random()*40-20)+'px';h.style.opacity=0},30);setTimeout(()=>h.remove(),2100)}
+// Las poses se mezclan suavemente (unos 0,3 s) en vez de cambiar de golpe
+function blend(P){if(!PL)PL={bx:P.bx,by:P.by,tilt:P.tilt,nod:P.nod||0,lb:P.lb,lg:P.lg,la:P.la.slice(),ra:P.ra.slice()};
+ const k=1-Math.exp(-DT*14),o=Object.assign({},P);
+ for(const f of['bx','by','tilt','nod','lb','lg']){PL[f]+=((P[f]||0)-PL[f])*k;o[f]=PL[f]}
+ for(const f of['la','ra'])for(let i=0;i<2;i++)PL[f][i]+=(P[f][i]-PL[f][i])*k;
+ o.la=PL.la.slice();o.ra=PL.ra.slice();return o}
+function lifeTick(dt){DT=dt;const n=Date.now();
+ if(n>nextHip){hipT=pick([-1,0,1]);nextHip=n+7000+Math.random()*3000}hipS+=(hipT-hipS)*Math.min(1,dt*3);
+ if(n>nextPeek){openUntil=n+350;nextPeek=n+3000+Math.random()*3000}
+ if(!LM&&Math.abs(dv)>2&&!held()){X+=dv*dt;dv*=Math.max(0,1-dt*9)}else if(!LM)dv=0;LM=0;X=Math.max(60,Math.min(innerWidth-60,X));
+ if(mode==='hum'&&(nt-=dt)<=0){nt=1.1;fl('♪','#ff5c8a')}
+ const k=Math.max(.35,1-Y/(innerHeight*.4));
+ sh.style.left=X+'px';sh.style.bottom=(floorH()+innerHeight*.012)+'px';sh.style.width=(innerHeight*.22*k*(closeUp?1.7:1))+'px';sh.style.opacity=k;
+ document.body.style.setProperty('--px',((mx/innerWidth-.5)*-14)+'px')}
+// Nuevos reposos: sentarse, mirar el cielo, bostezar, tararear, estirarse
+const REST={sit:{d:14,s:['*se sienta a descansar* ♪']},sky:{d:6,s:['Qué lindo se ve el cielo...','Mmm... ¿en qué pensará el cielo?']},yawn:{d:3.2,s:['*bosteza* Aaaah...','Tengo un poquito de sueño... ♪']},
+ hum:{d:7,s:['Mmm mm mm~ ♪'],v:[[659,'u',.3],[784,'u',.3],[880,'u',.3],[784,'u',.5]]},stretch:{d:2.5,s:['*se estira* ¡Ahhh!']}};
+const _act=act;act=function(n){if(n==='lookwin'){lookWindow();return}const q=REST[n];if(q){tgt=null;setMode(n,q.d);say(pick(q.s),3000);if(q.v)vc(q.v);return}return _act(n)};
+function restPool(){const idle=Date.now()-lastReal,h=new Date().getHours(),nt_=h>=22||h<6;
+ if(idle>40000){const p=['sit','sit','sky','hum','draw','hair'];if(nt_)p.push('yawn','yawn');if(inroom&&WX&&RAIN(WX.code))p.push('lookwin');return p}
+ const p=['walk','wave','think','hop','leek','dance','walk'];if(nt_&&idle>20000)p.push('yawn');return p}
+// Cielo exterior en vivo: se actualiza cada 30 s con transición suave
+function skyTick(){const d=new Date(),tt=d.getHours()+d.getMinutes()/60,cl=v=>Math.max(0,Math.min(1,v));
+ $('#duskov').style.opacity=Math.max(cl(1-Math.abs(tt-18.5)/2),cl(1-Math.abs(tt-6.2)/1.5));
+ const nv=tt>=12?cl((tt-18.5)/2):cl((6.5-tt)/1.5);NV=nv;$('#nightov').style.opacity=nv;$('#stars').style.opacity=nv}
+document.body.style.background='linear-gradient(#5ec8ff,#c9f1ff)';skyTick();setInterval(skyTick,30000);
+// Sonido ambiente (generado por código, sin archivos): pájaros de día, grillos de noche
+function chirp(v){const t0=ac.currentTime,n=2+(Math.random()*3|0),f0=2200+Math.random()*1200;
+ for(let i=0;i<n;i++){const o=ac.createOscillator(),g=ac.createGain(),s=t0+i*.12;o.type='sine';o.frequency.setValueAtTime(f0,s);o.frequency.exponentialRampToValueAtTime(f0*(1.25+Math.random()*.3),s+.08);
+  g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(.015*v,s+.02);g.gain.exponentialRampToValueAtTime(.0005,s+.09);o.connect(g);g.connect(ac.destination);o.start(s);o.stop(s+.1)}}
+function cricket(v){const t0=ac.currentTime;for(let i=0;i<6;i++){const o=ac.createOscillator(),g=ac.createGain(),s=t0+i*.07;o.type='sine';o.frequency.value=4300;
+ g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(.008*v,s+.01);g.gain.linearRampToValueAtTime(0,s+.04);o.connect(g);g.connect(ac.destination);o.start(s);o.stop(s+.05)}}
+setInterval(()=>{if(!ac||muted||!started||MA||document.hidden||mode==='sing')return;const d=new Date(),h=d.getHours()+d.getMinutes()/60,v=inroom?.4:1,rainy=WX&&RAIN(WX.code);
+ if(h>=6.5&&h<19&&!rainy&&Math.random()<.35)chirp(v);if((h>=20.5||h<5||(h>=19&&h<20.5))&&Math.random()<.5)cricket(v)},1400);
+// Rutina diaria (solo mientras la página está abierta)
+const fired={};setInterval(()=>{if(!started)return;const d=new Date(),h=d.getHours(),k=today()+h,
+ M={7:'¡Buenos días, {n}! ☀️ ¿Cómo dormiste?',14:'¿Ya comiste algo, {n}? No te olvides de almorzar ♪',22:'¿Ya vas a dormir, {n}? No te desveles mucho ♪'};
+ if(M[h]&&d.getMinutes()<5&&!fired[k]&&mode!=='sleep'){fired[k]=1;act('wave');say(M[h],6000)}},60000);
+
+// ===================== PARTE 8: paisaje, ventana grande, decorar, juegos, voz =====================
+var NV=0,GM=null,gon=false,gl=0;const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function hills(g,W,H,off){const s=W/160;
+ for(const[b,col,fq,a1,a2,k]of[[.52,'#5b7fa8',.04,12,4,.4],[.64,'#3f8f5a',.06,9,3,.7],[.76,'#2f7a47',.09,6,2,1]]){g.fillStyle=col;
+  for(let x=0;x<W;x++){const xx=x/s+off*k,y=Math.round(H*b+(Math.sin(xx*fq+b*9)*a1+Math.sin(xx*fq*2.7)*a2)*s);g.fillRect(x,y,1,H-y)}}
+ for(const[tx,ty]of[[18,.74],[44,.78],[96,.75],[138,.73],[70,.8]]){const x=Math.round(tx*s+off*s),y=Math.round(H*ty),u=Math.max(1,Math.round(s));
+  g.fillStyle='#5a3a1e';g.fillRect(x,y,u,3*u);g.fillStyle='#1d5a3a';g.fillRect(x-2*u,y-3*u,5*u,3*u);g.fillRect(x-u,y-6*u,3*u,3*u)}}
+const lc=$('#land').getContext('2d');let lfr=0;
+function drawLand(){const g=lc,W=160,H=90,d=new Date(),tt=d.getHours()+d.getMinutes()/60,off=RM?0:(mx/innerWidth-.5)*-6,code=WX?WX.code:1,gray=code>=3,day=tt>=6.5&&tt<19.5;lfr++;g.clearRect(0,0,W,H);
+ if(!gray||code===3){const f=day?(tt-6.5)/13:((tt-19.5+24)%24)/11,x=f*W,y=H*.5-Math.sin(f*PI)*H*.42;
+  if(f>=0&&f<=1){g.fillStyle=day?'#ffe45e':'#f2f2d9';g.fillRect(Math.round(x-4),Math.round(y-4),8,8);if(!day)g.clearRect(Math.round(x),Math.round(y-4),4,5)}}
+ g.fillStyle=gray?'#b9c0cb':'#fff';for(let i=0;i<(code<2?2:code<3?3:6);i++){const x=((RM?0:lfr*.06)+i*37)%(W+30)-15,y=8+(i*11)%30;g.fillRect(x,y,18,4);g.fillRect(x+4,y-3,10,4);g.fillRect(x+2,y+3,14,2)}
+ hills(g,W,H,off);
+ if(code>=45&&code<=48){g.fillStyle='rgba(220,225,235,.35)';g.fillRect(0,0,W,H)}
+ if(!RM){if(RAIN(code)){g.fillStyle='#9ecbff';for(let i=0;i<60;i++)g.fillRect((i*29)%W,(lfr*3+i*13)%H,1,3)}
+  if((code>=71&&code<=77)||code===85||code===86){g.fillStyle='#fff';for(let i=0;i<50;i++)g.fillRect(Math.abs(i*31+Math.sin(lfr/9+i)*3)%W,(lfr+i*17)%H,1,1)}}
+ g.globalCompositeOperation='source-atop';g.fillStyle='rgba(8,12,40,'+NV*.6+')';g.fillRect(0,0,W,H);g.globalCompositeOperation='source-over'}
+setInterval(()=>{if(!inroom&&!document.hidden)drawLand()},100);
+const _w2=welcome;welcome=function(){const p=+ls('mikuLast')||0,r=_w2();if(LOC)fetchWX();if(p&&Date.now()-p>72*36e5)setTimeout(()=>act('sit'),300);return r};
+setInterval(()=>{if(LOC&&started&&!inroom)fetchWX()},9e5);
+// ---- Editor de habitación
+const CAT=[['🛋️','Sofá',40,1],['🪴','Planta',15,1],['📚','Libros',20,1],['🪑','Silla',20,1],['🎹','Teclado',35,1],['🐱','Gato',60,1],['🐟','Pecera',45,1],['🖼️','Cuadro',25,0],['🕯️','Vela',10,1],['🌸','Flores',10,1],['🕰️','Reloj',20,0],['🏆','Trofeo',0,1,'racha7'],['🏅','Medalla',0,0,'nivel5'],['📷','Foto',0,0,'ritmo'],['💿','Disco',0,1,'dj'],['🎁','Regalo',0,1,'cumple']];
+const WALLS=['#6a5aa0','#3d7a6e','#a55a7a','#c98f4a','#4a6fa5','#e6d7b5'],FLOORS=[['#8a5a3c','#7a4d33'],['#9aa0a6','#8a9096'],['#c9a66b','#b8955a']];
+let DECO=[],editing=false;try{DECO=JSON.parse(ls('mikuDeco')||'[]')}catch(e){}
+const saveD=()=>ls('mikuDeco',JSON.stringify(DECO));
+function applyRoom(){const w=ls('mikuWall'),f=FLOORS[+ls('mikuFloor')||0]||FLOORS[0];if(w)$('#room').style.background=`linear-gradient(${w},${w})`;
+ $('#rfloor').style.background=`repeating-linear-gradient(90deg,${f[0]} 0 9vh,${f[1]} 9vh 9.4vh)`}
+function renderDeco(){document.querySelectorAll('.di').forEach(e=>e.remove());
+ DECO.forEach((o,i)=>{const el=document.createElement('div');el.className='di';el.dataset.i=i;el.textContent=o.e;el.style.cssText=`left:${o.x}%;bottom:${o.y}vh;font-size:${o.s}vh`;$('#room').appendChild(el)})}
+function deckUI(){const d=$('#deco');d.innerHTML='';const add=(h,css,fn)=>{const b=document.createElement('button');b.className='ci';b.style.cssText=css;b.innerHTML=h;b.onclick=fn;d.appendChild(b)};
+ WALLS.forEach(c=>add('&nbsp;','background:'+c+';width:30px',()=>{ls('mikuWall',c);applyRoom()}));
+ FLOORS.forEach((f,i)=>add('&nbsp;','background:'+f[0]+';width:30px;border-color:#123',()=>{ls('mikuFloor',i);applyRoom()}));
+ CAT.forEach((c,i)=>add(c[0]+'<small>'+(c[4]&&!PG.ach[c[4]]?'🔒':c[2]?'🪙'+c[2]:'gratis')+'</small>','',()=>buy(i)))}
+function buy(i){const c=CAT[i];if(c[4]&&!PG.ach[c[4]]){const a=ACH.find(x=>x[0]===c[4]);say('Se desbloquea con el logro «'+(a?a[1]:'?')+'» 🏆',3500);return}
+ if(PG.pts<c[2]){say('Te faltan '+(c[2]-PG.pts)+' 🪙 ♪',2500);return}PG.pts-=c[2];save6();mood();
+ DECO.push({e:c[0],x:35+Math.random()*30,y:c[3]?10:30+Math.random()*25,f:c[3],s:c[3]?8:9});saveD();renderDeco();vc([[784,'i',.1],[988,'i',.15]])}
+function toggleDeco(){if(!inroom)toggleRoom();editing=!editing;document.body.classList.toggle('editing',editing);$('#deco').style.display=editing?'flex':'none';if(editing)deckUI();
+ say(editing?'Modo decorar: toca un objeto para comprarlo y arrástralo. Suéltalo en 🗑️ para quitarlo ♪':'¡Qué lindo quedó! ♪',4500)}
+$('#room').addEventListener('pointerdown',e=>{if(!editing)return;const el=e.target.closest('.di');if(!el)return;e.preventDefault();const i=+el.dataset.i,o=DECO[i],inT=ev=>ev.clientY<innerHeight*.14&&ev.clientX>innerWidth*.75;
+ const mv=ev=>{o.x=ev.clientX/innerWidth*100;if(!o.f)o.y=(innerHeight-ev.clientY)/innerHeight*100;el.style.left=o.x+'%';el.style.bottom=o.y+'vh';el.style.opacity=inT(ev)?.4:1};
+ const up=ev=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);if(inT(ev)){const c=CAT.find(x=>x[0]===o.e);PG.pts+=Math.floor((c?c[2]:0)/2);save6();mood();DECO.splice(i,1)}saveD();renderDeco()};
+ addEventListener('pointermove',mv);addEventListener('pointerup',up)});
+applyRoom();renderDeco();
+// ---- Juegos
+const gc=$('#gc'),G2=gc.getContext('2d');
+function gstart(g){GM=g;$('#gov').style.display='flex';$('#chat').style.display='none';if(!gon){gon=true;gl=performance.now();requestAnimationFrame(gloop)}}
+function gstop(){GM=null;$('#gov').style.display='none'}
+function gloop(n){if(!GM){gon=false;return}const dt=Math.min(.05,(n-gl)/1000);gl=n;user();GM.upd(dt);GM.draw(G2);requestAnimationFrame(gloop)}
+const gpos=e=>{const r=gc.getBoundingClientRect();return[(e.clientX-r.left)/r.width*320,(e.clientY-r.top)/r.height*180]};
+gc.addEventListener('pointerdown',e=>{if(GM&&GM.tap)GM.tap(...gpos(e))});gc.addEventListener('pointermove',e=>{if(GM&&GM.move)GM.move(...gpos(e))});$('#gx').onclick=gstop;
+const bp=(f,v)=>{if(ac&&!muted)tone(f,v||'a',.25,0,1)};
+function openGames(){const g=$('#games');
+ g.innerHTML='<button id="gxx" style="float:right">✕</button><h3>🎮 JUEGOS</h3>'+[['🦖','Miku Runner','mikuRunHi'],['🥬','Atrapa puerros','mikuLeekHi'],['🧠','Simón dice','mikuSimHi'],['🎵','Ritmo','mikuHi']]
+  .map((x,i)=>`<button class="gb" data-i="${i}">${x[0]} ${x[1]}<small>récord ${ls(x[2])||0}</small></button>`).join('');
+ g.style.display='block';$('#gxx').onclick=()=>g.style.display='none';
+ g.querySelectorAll('.gb').forEach(b=>b.onclick=()=>{g.style.display='none';[()=>gstart(runner()),()=>gstart(leeks()),()=>gstart(simon()),startGame][+b.dataset.i]()})}
+function runner(){let y=0,vy=0,sc=0,sp=110,ob=[],nx=60,t_=0,over=false,du=false,hi=+ls('mikuRunHi')||0,cl=[[40,30],[170,45],[290,22]];
+ const jump=()=>{if(over){GM=runner();return}if(y===0&&!du){vy=210;bp(880,'i')}};
+ const end=()=>{over=true;const v=Math.floor(sc);if(v>hi){hi=v;ls('mikuRunHi',v)}bp(330,'o');gain(Math.floor(v/20),Math.floor(v/40));memo('Corrí '+v+' puntos en Miku Runner');say('¡Casi! Otra vez ♪',2500)};
+ return{upd(dt){if(over)return;t_+=dt;sc+=dt*sp/6;sp=Math.min(260,110+sc*.18);vy-=520*dt*(du&&y>0?3.2:1);y=Math.max(0,y+vy*dt);if(y===0)vy=0;
+   nx-=sp*dt;if(nx<=0){if(sc>120&&Math.random()<.35)ob.push({x:330,w:9,t:1});else{const n=1+(Math.random()*2|0);ob.push({x:330,w:6*n,h:10+(Math.random()*10|0)})}nx=Math.max(80,110+Math.random()*130)}
+   ob.forEach(o=>o.x-=sp*dt);ob=ob.filter(o=>o.x>-20);cl.forEach(c=>{c[0]-=sp*.2*dt;if(c[0]<-30)c[0]=340});
+   const ph=du&&y===0?9:16,top=150-ph-y,bot=150-y;
+   for(const o of ob)if(o.x<34&&o.x+o.w>22&&(o.t?(top<138&&bot>123):(y<o.h-2))){end();break}},
+  draw(g){const n=Math.floor(sc/400)%2,fg=n?'#fff':'#123',d=du&&y===0,ph=d?9:16,my=150-ph-y;g.fillStyle=n?'#101535':'#cfefff';g.fillRect(0,0,320,180);g.fillStyle=n?'#2a3070':'#fff';cl.forEach(c=>g.fillRect(c[0],c[1],22,5));
+   g.fillStyle=fg;g.fillRect(0,150,320,2);for(let x=0;x<340;x+=24)g.fillRect(((x-t_*sp)%340+340)%340,156,8,1);
+   for(const o of ob){if(o.t){g.fillStyle='#ff5c8a';g.fillRect(o.x,134,5,4);g.fillRect(o.x+4,123,1,13);g.fillRect(o.x+5,123,4,2)}else{g.fillStyle='#3fbf4a';g.fillRect(o.x,150-o.h,o.w,o.h-4);g.fillStyle='#e8ffe0';g.fillRect(o.x,146,o.w,4)}}
+   const f=Math.floor(t_*10)%2;g.fillStyle='#0f9a99';g.fillRect(20,my,13,d?5:6);
+   if(d){g.fillRect(12,my+2,8,7);g.fillStyle='#ffcf9f';g.fillRect(22,my+5,9,3);g.fillStyle='#1d4a4a';g.fillRect(24,my+5,1,1);g.fillRect(28,my+5,1,1);g.fillStyle='#2a2c33';g.fillRect(23,148-y,4,2);g.fillRect(28,148-y,4,2)}
+   else{g.fillRect(14+Math.round(Math.sin(t_*12)*2),my+4,6,12);g.fillStyle='#ffcf9f';g.fillRect(22,my+6,9,4);g.fillStyle='#1d4a4a';g.fillRect(24,my+7,1,2);g.fillRect(28,my+7,1,2);
+    g.fillStyle='#9a9a9a';g.fillRect(23,my+10,7,4);g.fillStyle='#2a2c33';g.fillRect(23,my+14,3,2);g.fillRect(28,my+14,3,2);if(y===0&&!over)g.fillRect(f?23:28,my+16,3,1)}
+   g.fillStyle=fg;g.font='bold 10px monospace';g.fillText('HI '+String(hi).padStart(5,'0')+'  '+String(Math.floor(sc)).padStart(5,'0'),200,16);g.fillText('Salta: espacio/↑ o toca arriba · Agacha: ↓ o toca abajo',8,176);
+   if(over)g.fillText('GAME OVER - salta para reintentar',50,80)},
+  key(k,r){if(k==='arrowdown'||k==='s'){du=true;return}if(!r&&(k===' '||k==='arrowup'||k==='w'))jump()},keyup(k){if(k==='arrowdown'||k==='s')du=false},
+  tap(x,yy){if(yy>112&&!over)du=true;else jump()},up(){du=false}}}
+function leeks(){let px=160,L=[],sc=0,lives=3,nx=0,over=false,dl=0,dr=0,hi=+ls('mikuLeekHi')||0;
+ return{upd(dt){if(over)return;px=Math.max(10,Math.min(310,px+(dr-dl)*190*dt));nx-=dt;if(nx<=0){L.push({x:12+Math.random()*296,y:-8,v:60+sc*3+Math.random()*30,g:Math.random()<.15});nx=Math.max(.35,1-sc*.015)}
+   L.forEach(l=>l.y+=l.v*dt);
+   L=L.filter(l=>{if(l.y>138&&l.y<158&&Math.abs(l.x-px)<22){if(l.g){lives--;bp(220,'o')}else{sc++;bp(660+sc*12,'i')}return false}if(l.y>170){if(!l.g)lives--;return false}return true});
+   if(lives<=0){over=true;if(sc>hi){hi=sc;ls('mikuLeekHi',sc)}gain(sc*2,sc);memo('Atrapé '+sc+' puerros contigo');say('¡Atrapaste '+sc+' puerros! ♪',3000)}},
+  draw(g){g.fillStyle='#cfefff';g.fillRect(0,0,320,180);for(const l of L){g.fillStyle=l.g?'#d62839':'#3fbf4a';g.fillRect(l.x-2,l.y,5,12);g.fillStyle='#e8ffe0';g.fillRect(l.x-2,l.y+9,5,4)}
+   g.fillStyle='#0f9a99';g.fillRect(px-9,148,18,14);g.fillStyle='#ffcf9f';g.fillRect(px-6,152,12,6);g.fillStyle='#123';g.fillRect(px-9,162,18,3);g.font='bold 10px monospace';
+   g.fillText('PUNTOS '+sc+'  VIDAS '+lives+'  HI '+hi,8,14);g.fillText('Mantén ← → para moverte. Atrapa los verdes, esquiva los rojos',8,28);if(over)g.fillText('GAME OVER - espacio o toca para reintentar',40,90)},
+  move(x){px=Math.max(10,Math.min(310,x))},key(k){if(k==='arrowleft'||k==='a')dl=1;if(k==='arrowright'||k==='d')dr=1;if(over&&k===' ')GM=leeks()},
+  keyup(k){if(k==='arrowleft'||k==='a')dl=0;if(k==='arrowright'||k==='d')dr=0},tap(x){if(over)GM=leeks();else px=Math.max(10,Math.min(310,x))}}}
+function simon(){const F=[523,659,784,988],C=['#ff5c8a','#ffd23f','#3fe0a5','#6fa8ff'],KM={d:0,f:1,j:2,k:3,'1':0,'2':1,'3':2,'4':3};
+ let seq=[Math.random()*4|0],pl=0,st='show',ti=-.6,lit=-1,fq=0,sc=0,hi=+ls('mikuSimHi')||0;
+ const press=l=>{if(st!=='in')return;fq=.25;lit=l;bp(F[l],'a');if(l===seq[pl]){pl++;if(pl===seq.length){sc++;pl=0;st='wait';ti=0;seq.push(Math.random()*4|0)}}
+  else{st='over';if(sc>hi){hi=sc;ls('mikuSimHi',sc)}gain(sc*3,sc*2);say('¡Llegaste a '+sc+'! ♪',3000)}};
+ return{upd(dt){ti+=dt;if(fq>0){fq-=dt;if(fq<=0)lit=-1}if(st==='wait'&&ti>.8){st='show';ti=-.6}
+   if(st==='show'){const i=Math.floor(ti/.6);if(i>=seq.length){st='in';pl=0;lit=-1}else if(i>=0){const l=(ti-i*.6)<.4?seq[i]:-1;if(l!==lit&&l>=0)bp(F[l],'a');lit=l}}},
+  draw(g){g.fillStyle='#101535';g.fillRect(0,0,320,180);for(let i=0;i<4;i++){g.fillStyle=lit===i?C[i]:C[i]+'66';g.fillRect(20+i*72,50,64,80)}g.fillStyle='#fff';g.font='bold 10px monospace';
+   g.fillText('Nivel '+sc+'  record '+hi,8,16);g.fillText(st==='show'?'Mira...':st==='in'?'Tu turno! (D F J K o toca)':st==='over'?'GAME OVER - espacio o toca':'Bien!',8,36)},
+  key(k){if(st==='over'&&k===' '){GM=simon();return}if(KM[k]!==undefined)press(KM[k])},tap(x){if(st==='over'){GM=simon();return}const i=Math.floor((x-20)/72);if(i>=0&&i<4)press(i)}}}
+// ---- Sueños, hobbies, chat y voz
+Object.assign(REST,{draw:{d:8,s:['*dibuja en su libretita* ✏️'],e:'✏️'},hair:{d:6,s:['*se arregla una coleta* ♪'],e:'✨'}});
+const DREAMS=['Mmm... soñé que cantábamos juntas...','Zzz... puerros gigantes... ñam...','Mmm... un concierto... ♪','Zzz... volaba sobre las nubes...'];let dtm=12,nt2=0;
+const _lt=lifeTick;lifeTick=function(dt){_lt(dt);if(mode==='sleep'&&(dtm-=dt)<=0){dtm=14+Math.random()*10;say(pick(DREAMS),4500)}
+ const q=REST[mode];if(q&&q.e&&(nt2-=dt)<=0){nt2=1.4;fl(q.e,'#fff')}};
+let typed=true;$('#cin').addEventListener('input',()=>typed=true);
+$('#chatbtn').addEventListener('click',()=>{typed=false;setTimeout(()=>{if(!typed&&$('#chat').style.display==='flex')say('¿Te quedaste pensando, {n}? ♪',3500)},25000)});
+let ttsOn=ls('mikuTts')!=='0';
+function tts(txt){if(ttsOn)vox(txt)}
+function toggleTts(){ttsOn=!ttsOn;ls('mikuTts',ttsOn?'1':'0');say(ttsOn?'¡Voz de cantante activada! ♪':'Vuelvo a mi vocecita de notas ♪',2500);if(ttsOn)tts('Hola '+(name||''))}
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+$('#cmic').onclick=()=>{if(!SR){say('Tu navegador no permite hablarme con voz. Prueba Chrome o Edge ♪',4000);return}
+ const r=new SR();r.lang=navigator.language||'es-ES';r.onresult=e=>{$('#cin').value=e.results[0][0].transcript;send()};r.onerror=()=>say('No te escuché bien :(',2500);r.start();say('Te escucho... 🎙️',2500)};
+
+// ===================== PARTE 9: voz de cantante, agacharse, sin internet =====================
+function burst(at,dur,freq,g){const ns=ac.createBufferSource(),b=ac.createBiquadFilter(),o=ac.createGain(),t0=ac.currentTime+at;ns.buffer=noiseBuf();b.type='bandpass';b.frequency.value=freq;b.Q.value=1.5;
+ o.gain.setValueAtTime(0,t0);o.gain.linearRampToValueAtTime(g,t0+.01);o.gain.linearRampToValueAtTime(0,t0+dur);ns.connect(b);b.connect(o);o.connect(ac.destination);ns.start(t0);ns.stop(t0+dur+.02)}
+function syl(w){w=w.replace(/qu/g,'k').replace(/gu(?=[ei])/g,'g').replace(/h/g,'').replace(/^y$/,'i').replace(/ch/g,'s').replace(/ll/g,'y');
+ const R_=w.match(/[aeiou]+|[^aeiou]+/g)||[],S_=[];let on='';
+ R_.forEach((r,i)=>{if(/[aeiou]/.test(r[0])){S_.push({on,nu:r,co:''});on=''}else if(!S_.length)on=r;else if(R_[i+1]){if(r.length===1)on=r;else{S_[S_.length-1].co=r[0];on=r.slice(1)}}else S_[S_.length-1].co=r});
+ if(!S_.length)S_.push({on:'',nu:'a',co:''});return S_}
+// Voz de cantante: cada sílaba es una nota (con vocal, consonante y aire), como un sintetizador vocal
+const SCV=[523,587,659,784,880,988,1047,1175];
+function vox(txt){if(!ac||muted)return 0;if(ac.state==='suspended')ac.resume();
+ const raw=txt.replace(/[¿¡]/g,'').split(/\s+/).filter(Boolean).slice(0,28),q=/\?\s*$/.test(txt),ex=/!\s*$/.test(txt);let at=.08,idx=3;
+ raw.forEach((rw,wi)=>{const w=NZ(rw);if(!w)return;const sy=syl(w);
+  sy.forEach((s,si)=>{const last=wi===raw.length-1&&si===sy.length-1,d=last?.4:.15+(s.co?.04:0);
+   idx=Math.max(0,Math.min(7,idx+pick([-1,0,1,1,2,-2])));if(last&&q)idx=Math.min(7,idx+2);
+   const f=SCV[idx]*(last&&!q&&!ex?.94:1),v1=s.nu[0],v2=s.nu[s.nu.length-1],o=s.on[0];
+   if(o){if('szxjf'.includes(o)||(o==='c'&&'ei'.includes(v1)))burst(at-.06,.07,o==='f'?3800:(o==='x'||o==='j')?2800:6500,.11);
+    else if('pbtdkgc'.includes(o))burst(at-.015,.02,'pb'.includes(o)?900:'td'.includes(o)?3500:1800,.2);else burst(at-.03,.05,500,.04)}
+   tone(f,v1,d,at,1,1,v2);if(s.co==='s')burst(at+d*.8,.06,6500,.09);at+=d*.92});
+  at+=/[,.;:!?]$/.test(rw)?.2:.05});
+ talkUntil=Date.now()+at*1000+200;return at}
+// Teclas y toques en los minijuegos: soltar ↓ o las flechas, y zona táctil
+gc.addEventListener('pointerup',()=>{if(GM&&GM.up)GM.up()});
+addEventListener('keyup',e=>{if(GM&&GM.keyup)GM.keyup(e.key.toLowerCase())});
+// Sin internet: aviso + Runner, como el dinosaurio de Chrome
+function offlineUI(on){$('#offl').style.display=on?'block':'none';if(started)say(on?'¡Se cayó el internet! No importa: ¿jugamos al Runner? 🦖':'¡Volvió el internet! ♪',on?5000:2500)}
+addEventListener('offline',()=>offlineUI(true));addEventListener('online',()=>offlineUI(false));
+$('#offl').onclick=()=>gstart(runner());
+if(!navigator.onLine){$('#offl').style.display='block';$('#intro').insertAdjacentHTML('afterbegin','<div>📡 Sin internet... ¡pero Miku sigue aquí!</div>')}
+const _w4=welcome;welcome=function(){const r=_w4();if(!navigator.onLine)setTimeout(()=>offlineUI(true),6000);return r};
+</script></body></html>
